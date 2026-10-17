@@ -1,0 +1,338 @@
+TRANSCRIPCIÓN DEPURADA COMPLETA - TURBINE (sistema interno de facturación y cobros)
+Une la primera reunión (presentación + preguntas) y la reunión ampliada. Solo contenido útil para el proyecto.
+
+CÓMO LEER ESTE DOCUMENTO
+- (R1) = primera reunión. 
+- (R2) = reunión ampliada. 
+- (R2, corrige R1) = R2 modifica o matiza lo dicho en R1.
+- En R2 el cliente confirma que todo lo hablado en R1 sigue siendo la base; R2 añade situaciones reales que faltaban.
+- El texto es una síntesis fiel de lo dicho por el cliente (Alejandro). Está agrupado por temas, no en orden cronológico.
+
+==================================================
+1. CONTEXTO Y ALCANCE
+==================================================
+- Turbine: startup en fase seed, recursos limitados, 7 personas, 10 clientes en beta (R1). Producto propio: "Brain" (IA para empresas). (R1)
+- Modelo de negocio: suscripción mensual según la facturación anual del cliente; sin consumo de tokens. Servicios adicionales (por ejemplo, instalación local) como factura puntual. Suscripciones mes a mes, sin permanencia. (R1)
+- Hoy el ponente gestiona facturas y cobros él mismo; en el futuro habrá un departamento dedicado. (R1)
+- Cada cliente recibe al menos una factura al mes. No todos pagan automáticamente (tickets grandes se pagan a X días). Hay que hacer seguimiento mensual. (R1)
+- Necesidades: alta fácil de clientes; facturas mensuales, recurrentes o no según el cliente; conexión a fuentes de datos (banco, Stripe) para comprobar pagos; seguimiento automatizado de impagos y vencimientos; notificaciones internas para validar cada pago. (R1)
+- La aplicación es una herramienta interna de administración, independiente del Brain y de su interfaz (que es para clientes). Debe seguir funcionando aunque cambie o desaparezca el Brain. No es producto para vender a clientes. (R1, R2)
+- No hay integración con el Brain. Sí interesa dejar abierta la posibilidad de que hable con otros sistemas mediante una API. (R1, R2)
+- Los clientes de Turbine no tienen relación con la aplicación: no se registran, no entran, no tienen chat. Si tienen dudas contactan con soporte por un medio externo. Solo Turbine da de alta clientes. (R1, R2)
+- No es una pasarela de pago ni un ERP monstruoso con veinte menús. Hace registro de clientes, facturación, seguimiento de cobros y notificaciones. (R1, R2)
+- Con diez clientes bastaría una "libreta inteligente"; con mil clientes hay que saber qué pasa sin abrir cliente por cliente. (R2)
+- Fuera de alcance, o solo opcional: fiscalidad internacional completa (las reglas fiscales complejas pasan por la gestoría); Verifactu; integración con CRM. (R1, R2)
+
+==================================================
+2. CRITERIOS DE ÉXITO
+==================================================
+1. Pocos clics: alta de cliente, factura normal, factura recurrente y chequeo en menos de un minuto, sin curva de aprendizaje. Atravesar ocho pantallas para dar de alta un cliente sería un fallo aunque haya doscientas funcionalidades. (R1, R2)
+2. Operable desde cualquier sitio: aplicación web responsive (ordenador, tablet, móvil). (R1, R2)
+3. Información fluida: ningún dato debe quedarse sin llegar a la persona correcta. (R1, R2)
+4. Automatización confiable y explicable: si una factura no se envió, saberlo; si se marcó pagada, saber qué movimiento lo justificó; si una tarea no corrió, recibir una alerta. Automatizar errores a escala es peor que hacerlo a mano. (R2)
+- Objetivos de usabilidad concretos (R2): un usuario que conoce el proceso administrativo pero no la aplicación debe poder crear un cliente estándar y dejar preparada su suscripción con ayuda mínima; un usuario habitual debe localizar un cliente o factura en pocos segundos; las acciones comunes no deben requerir menús profundos. El equipo debe medir y justificar su propuesta (no basta con prometer "UX intuitiva").
+
+==================================================
+3. CLIENTES Y CONTACTOS
+==================================================
+- Cliente = normalmente una empresa. Datos mínimos de la empresa: nombre, NIF y dirección. (R1)
+- Una empresa puede tener varias personas de contacto (una que contrata, otra de administración que recibe facturas, otra para impagos). No hay que duplicar la empresa. (R2, corrige R1: en R1 era una sola persona)
+- Una persona puede dejar la compañía: se marca como inactiva sin perder el histórico de facturas enviadas a su correo. (R2)
+- Una persona podría estar asociada a varias empresas (consultores, grupos empresariales); no es lo habitual, pero no se cierra la puerta. (R2)
+- Al enviar una factura debe quedar constancia de los destinatarios de ese momento, aunque luego cambien los contactos de la empresa. (R2)
+- Datos comerciales distintos de los fiscales: nombre comercial, razón social, NIF o identificador fiscal, domicilio fiscal, país, moneda de trabajo y datos de contacto. No suponer que todos los NIF tienen formato español ni que todas las direcciones tienen provincia. (R2)
+- Operación principalmente en España y euros, con vocación internacional: una empresa de otro país debe poder guardarse con país, identificador fiscal y moneda acordada. Los impuestos se configuran o se seleccionan entre los dados de alta; el sistema no deduce la legislación de cada país. (R2)
+- Cada cliente tiene un responsable interno (usuario de Turbine, administrador u operativo), que recibe sus notificaciones. (R1, R2)
+- Antes de crear un cliente: buscar duplicados razonables (por identificador fiscal); avisar sin fusionar automáticamente. Una fusión de fichas, si se implementa, es una operación administrativa controlada y totalmente auditada. (R2)
+- Calidad de datos: validar emails e identificadores cuando se conozca el país, campos obligatorios, normalizar espacios. Permitir excepciones controladas (por ejemplo, teléfono todavía desconocido). Distinguir lo imprescindible para emitir factura de lo meramente conveniente para la ficha. (R2)
+- Filtros de búsqueda de clientes: ubicación y temática/sector (R1); etiquetas libres (estratégico, beta, partner, riesgo de cobro...), que no sustituyen estados importantes: "impagado" es una situación derivada de las facturas, no una etiqueta manual. (R2)
+- Bloqueos: no activar recurrencia en un cliente sin datos fiscales suficientes (bloquear y explicar); avisar si se intenta borrar el único contacto de facturación de un cliente activo. (R2)
+- Datos de cliente: conservarlos el máximo que permita la ley, siempre con borrado lógico (permite futuras campañas). (R1)
+
+==================================================
+4. RELACIÓN COMERCIAL Y ESTADOS DEL CLIENTE
+==================================================
+- No es un contrato con permanencia: el servicio es mes a mes. Pero hay que representar la relación comercial (llamarla suscripción, acuerdo comercial o ficha comercial): fecha de inicio, servicio o plan, tarifa acordada, responsable interno, condiciones de pago y, si existe un documento firmado fuera de la plataforma, poder asociarlo. No confundir la factura con la relación comercial que la provoca. (R2)
+- Las facturas recurrentes se generan a partir de conceptos configurados en la suscripción, no de un PDF pegado. (R2)
+- Estados posibles del cliente: prospecto importado, pendiente de activación, activo, pausado, baja solicitada, inactivo, quizá bloqueado administrativamente. Los prospectos quizá pertenecen más al CRM; lo mínimo es representar los estados que afectan a la facturación. Cada cambio de estado tiene consecuencias explícitas, no "magia escondida". (R2)
+- Inicio futuro: se puede cerrar hoy un acuerdo que empiece el día uno del mes siguiente. Hasta esa fecha no hay facturas ni recordatorios, pero el cliente aparece como pendiente de activación. (R2)
+- Pausa temporal acordada (distinta de la baja): no se generan mensualidades, el cliente sigue existiendo y puede tener facturas antiguas pendientes. La pausa tiene motivo, fecha de inicio y, si se conoce, fecha prevista de reactivación. Al llegar esa fecha el sistema avisa al responsable y no asume nada importante si la política exige confirmación. (R2)
+- Baja: (R1, R2)
+  * La baja del producto se hace fuera (otra plataforma); esta aplicación debe poder recibir o registrar la solicitud y consultar si hay deuda pendiente. Si no hay deuda, la facturación cierra la recurrencia en la fecha efectiva.
+  * Al darse de baja se elimina la recurrencia y no se emiten más mensualidades desde la fecha de baja.
+  * Si hay facturas impagadas (recurrentes o puntuales), la baja comercial sigue su curso pero el flujo de recobro de las anteriores sigue vivo. Son dos conceptos distintos: la deuda no bloquea eternamente la baja y la baja no hace desaparecer el impago.
+  * Ejemplo (R1): si no paga abril, paga mayo y junio y pide la baja, se le sigue recordando abril hasta que lo pague.
+  * Los modelos instalados en local no afectan a la plataforma de facturación.
+- Reactivación: si el cliente vuelve meses después, se prefiere reactivar su ficha histórica antes que duplicar, siempre que legalmente se conserve y sea la misma entidad. (R2)
+
+==================================================
+5. TARIFAS, DESCUENTOS Y APROBACIONES
+==================================================
+- El precio depende del rango de facturación anual del cliente y es el mismo durante todo el año. Ejemplo (R1): empresa que factura 4 millones paga 890 EUR al mes todo el año. (R1)
+- Los rangos y sus precios son configuración, no código (hoy tres rangos, mañana cinco). El superadministrador cambia la tabla de tarifas para nuevas revisiones sin reescribir facturas históricas (una factura de febrero a 890 no puede pasar a mostrar 950). (R2)
+- Revisión anual del rango: el sistema detecta que toca revisión, recopila o permite introducir la facturación anual verificada (dato normalmente público; fuente simulada o entrada manual con referencia de la fuente y fecha; si no hay dato, queda pendiente) y propone el rango. Un responsable debe validar antes de cambiar lo que se factura. Queda registrado quién aprobó, cuándo, precio anterior y nuevo. El nuevo precio tiene fecha de efecto y no reescribe meses anteriores. (R1, R2)
+- Si se descubre más tarde que el dato era erróneo: se corrige la ficha de revisión con trazabilidad y se decide comercialmente. El sistema puede calcular el impacto, pero no emite facturas retroactivas por su cuenta; toda regularización es una acción explícita y aprobada. (R2)
+- El importe de una factura debe poder editarse al crearla (el modelo de negocio puede evolucionar). (R1)
+- Excepciones comerciales (descuento del 10% durante seis meses, primer mes gratuito, servicio adicional a precio pactado, empezar a facturar el mes siguiente sin prorrateo): deben ser explícitas. Un usuario puede preparar o solicitar el descuento, pero ciertos cambios económicos requieren aprobación de un administrador; si supera un umbral configurable, del superadministrador. Las reglas sensibles son configurables. (R2)
+- Workflow de aprobación: (R2)
+  * Una factura mensual que sale de una suscripción ya aprobada se genera sola, sin aprobación.
+  * Requieren aprobación antes de enviarse: modificar manualmente el importe, añadir un descuento extraordinario, cambiar un vencimiento fuera de lo habitual, crear una factura puntual de importe muy alto. El sistema explica por qué está pendiente.
+  * Bandeja de aprobaciones: el solicitante ve pendiente/aprobada/rechazada y el comentario del aprobador.
+  * El aprobador no aprueba su propia solicitud cuando la regla exige separación de funciones (importes sensibles); umbral configurable; definir qué operaciones la requieren.
+  * Si el aprobador está ausente, un administrador puede reasignar la aprobación o haber un suplente; toda reasignación queda registrada.
+
+==================================================
+6. FACTURAS
+==================================================
+Tipos y líneas
+- Dos tipos: factura puntual y factura recurrente (no hay factura simplificada). Son iguales; una se envía de forma continua y la otra no. (R1)
+- Factura puntual (instalaciones locales, consultoría, formación, hardware, desplazamientos...): varias líneas, cada una con concepto, cantidad, precio unitario, descuento si aplica e impuesto. Sin rango de precios. Tiene su propia fecha. (R2, R1)
+- El PDF es una representación de datos que ya existen en el sistema. (R2)
+- Catálogo ligero de conceptos frecuentes reutilizables, con precio orientativo e impuesto por defecto; al crear una factura puntual se pueden ajustar descripción y precio. Si cambia un concepto del catálogo, las facturas antiguas no cambian. (R2)
+- Vista previa antes de emitir. Si falta un dato fiscal imprescindible, se bloquea la emisión y se dice qué falta. (R2)
+- Advertencia (no siempre bloqueante) si el importe se sale mucho del patrón del cliente; regla sencilla configurable, sin IA. (R2)
+- Los impuestos aplicables se configuran o seleccionan entre los dados de alta. (R2)
+
+Ciclo de vida
+- Estados a analizar (no son una lista cerrada dictada por el cliente): borrador, aprobada o lista para emitir, emitida, enviada, vencida, pagada, parcialmente conciliada, anulada cuando legalmente proceda, rectificada. (R2)
+- "Pagada" significa que se ha detectado o validado un cobro. Incobrable, anulada y rectificada son cosas distintas; no se cambia simplemente "impagada" a "pagada". (R2)
+- Edición: antes de emitir puede corregirse; después de emitir, cualquier cambio relevante debe ser trazable y, cuando legalmente no proceda modificarla, se hace con factura rectificativa o procedimiento equivalente. La aplicación impide alterar silenciosamente una factura histórica. (R2, matiza R1)
+- R1 decía: una factura debe poder modificarse hasta el cambio de trimestre (la del 15 de marzo no se toca desde el 1 de abril). El cliente mantiene la intención funcional de controlar cuándo una factura es editable y cuándo ya no. (R1)
+- Las reglas legales concretas las marca la gestoría. (R1, R2)
+- Borrado: un borrador nunca emitido puede borrarse, con restricciones y traza si procede; una factura emitida no se borra como si nunca hubiera existido. (R2)
+- Cierre de periodos: marcar un mes o trimestre como cerrado administrativamente tras revisarlo; en periodo cerrado no se permiten cambios económicos ordinarios sin procedimiento excepcional y auditado. Cierra un administrador autorizado; reabrir requiere permiso superior y motivo. (R2)
+
+Numeración
+- Cada factura tiene serie y número único dentro de la serie; dos personas a la vez no pueden generar el mismo número. Serie ordinaria y quizá otra para rectificativas o para otra sociedad. El superadministrador configura las series. (R2)
+- Un borrador puede no consumir número definitivo; al emitir se asigna de forma segura. Si falla el envío tras emitir, reintentar no crea una factura nueva con otro número. (R2)
+
+PDF
+- Lo genera el sistema automáticamente y se envía a las partes. Formato único que respeta la identidad corporativa: logo, tipografía razonable, datos fiscales, numeración, fechas, líneas, bases, impuestos, total, condiciones de pago y datos de soporte. (R1, R2)
+- El archivo debe ser el mismo y consistente en todos los sitios (aplicación y cliente). (R1)
+- Una factura histórica debe poder reproducirse tal como se emitió, o conservar el PDF original emitido; un cambio de logo o plantilla no debe alterar documentos antiguos. (R2)
+- Turbine no necesita recibir el PDF por correo: basta con que quede guardado en la base de datos, por cliente. (R1)
+- Se pide una factura anonimizada de ejemplo para conocer los campos. (R1)
+
+Precisión
+- Precisión decimal: no usar float; los totales deben cuadrar, el PDF debe mostrar exactamente lo guardado, y las sumas del dashboard deben derivarse de los mismos datos. Si hay redondeos, documentar la regla. (R2)
+
+==================================================
+7. RECURRENCIA
+==================================================
+- Mensual, emitida el día 1 del mes. (R1, R2)
+- Alta a mitad de mes (por ejemplo, el 22): se factura la parte proporcional hasta fin de mes y el día uno siguiente empieza la mensualidad normal. (R1, R2)
+- El cálculo del prorrateo debe verse antes de confirmar el alta. No asumir meses de treinta días sin pensarlo: definir una regla de negocio coherente, documentarla y aplicarla de forma consistente (incluido el caso de alta el último día del mes). (R2)
+- Por acuerdo, algunos clientes empiezan a facturarse el mes siguiente sin prorrateo: excepción comercial explícita. (R2)
+- El concepto de las recurrentes es el mismo; cambia la fecha. No hay pago fraccionado como opción comercial. El precio no cambia durante el año. (R1)
+- Las recurrentes no son lo mismo que los recordatorios/notificaciones recurrentes. (R1)
+- La generación mensual debe ser reintentable e idempotente: si el sistema estaba caído a las 00:00 del día uno, al volver detecta qué facturas faltan y las genera sin duplicar. (R2)
+
+==================================================
+8. ENVÍO, RECORDATORIOS E IMPAGOS
+==================================================
+Envío
+- Envío automático cuando corresponde, por correo electrónico al contacto de facturación por defecto. WhatsApp es un canal complementario si hay consentimiento y número adecuado. Sin chat propio. (R1, R2)
+- La práctica no depende de contratar un proveedor real: se puede simular el envío. El sistema modela el canal y registra intento, resultado, fecha y destinatario, y permite reintentar un fallo sin duplicar la factura. Distinguir envío original de reintentos. (R2)
+- Si el correo rebota: no se marca la factura como correctamente notificada; se avisa al responsable, se deja una incidencia de entrega y se permite corregir el contacto y reenviar; si hay varios contactos de facturación, se puede intentar otro según configuración. (R2)
+- Distinguir "la factura existe pero no se pudo enviar" de "no se pudo crear la factura". No confundir "el servidor aceptó la petición" con "el cliente leyó el mensaje"; si no se puede saber la lectura, no se inventa. (R2)
+- Consentimiento de canal: guardar si el contacto admite WhatsApp u otros canales para comunicaciones administrativas. Distinguir contacto operativo de campañas de marketing; no usar automáticamente datos de facturación para campañas comerciales. (R2)
+- Ver mensajes en cola, enviados, entregados (si el proveedor lo permite), fallidos y reintentados. (R2)
+
+Recordatorios
+- Pago a 5 días por defecto. Se envía la factura, un recordatorio hacia el día 3 y otro al vencimiento (día 5). (R1, R2)
+- Después entra el flujo de impago, con tono amigable, cada 2 o 3 días como mínimo hasta que se detecte el pago o una persona intervenga. Nunca se cancela al cliente por impago. (R1, R2)
+- Tiempos configurables por el superadministrador; si un cliente tiene condiciones pactadas a treinta días, su vencimiento prevalece sobre el valor general (no enviar "estás en impago" el día 5 a quien tiene 30 días). (R2, corrige R1)
+- Todas las notificaciones al cliente incluyen datos de contacto de soporte (email y teléfono). (R1)
+- Si el vencimiento o un recordatorio cae en fin de semana o festivo, se puede mover al siguiente día laborable. Calendario para España con fines de semana y festivos administrables. (R2)
+- Plazo de pago estándar: 5 días; solo el superadministrador puede cambiarlo. Un cambio del vencimiento por defecto afecta a nuevas facturas o condiciones, no reescribe las ya emitidas. (R1, R2)
+
+Disputas y pausas
+- Se puede suspender temporalmente los recordatorios de una factura (por ejemplo, el cliente pide una semana por una incidencia): estado "en disputa" o "seguimiento pausado", con motivo y fecha de revisión. Durante la pausa no se envían correos automáticos, pero internamente consta que sigue sin cobrarse y que alguien debe revisarla al terminar. (R2)
+
+Perdón de deuda
+- No lo hace un usuario normal. Cancelar o considerar incobrable una deuda es una decisión administrativa muy controlada, con motivo y aprobación; contablemente puede requerir otro documento. (R2)
+
+==================================================
+9. COBROS Y CONCILIACIÓN
+==================================================
+- Los pagos pasan por la pasarela propia de Turbine (Stripe) y la cuenta bancaria (Revolut). La aplicación solo chequea, notifica y registra. Como mínimo debe conectarse a Stripe. (R1)
+- Para la práctica no se usa Stripe real: integración simulada que se comporta como si recibiera eventos de pago; debe poder consultar pagos y recibir una notificación simulada. Turbine lo integrará después. (R1, R2)
+- La detección del pago debe ser automática, con tareas lo más automatizadas posible; el usuario puede cambiar manualmente el estado de un cliente o factura. (R1)
+- Si el mismo evento llega dos veces, no se contabiliza el cobro dos veces. Un cobro sin referencia clara queda pendiente de conciliación manual. (R2)
+- No todo será Stripe: la conciliación debe permitir añadir otra fuente en el futuro (Revolut, cuenta bancaria). Un movimiento trae importe, fecha, moneda, concepto y referencia; el sistema intenta asociarlo a una factura. Coincidencia clara: la propone o concilia automáticamente según la política. Duda: se presenta a una persona. Nunca marcar por casualidad la factura equivocada (por ejemplo, dos facturas de 890 EUR) sin posibilidad de saber qué hizo el sistema. (R2)
+- Aunque no hay pago fraccionado como oferta comercial, el mundo real puede traer importes incorrectos: si una factura es de 1.000 y entran 900, no se marca como pagada; se deja el movimiento asociado y se señala la diferencia pendiente para revisión. Lo mismo si pagan de más. (R2, matiza R1)
+- Si una conciliación automática se deshace por error, queda trazado: que fue conciliada, quién o qué regla lo hizo, quién la revirtió y por qué. No se borra el evento. (R2)
+- Al detectar un cobro se notifica al responsable del cliente (no hace falta generar PDF de pago). Al detectar el pago se detiene el flujo de recordatorios. (R1)
+- Las integraciones están encapsuladas: cambiar de proveedor no obliga a reescribir el modelo de factura. (R2)
+
+==================================================
+10. NOTIFICACIONES INTERNAS, INCIDENCIAS, COMENTARIOS Y ADJUNTOS
+==================================================
+Notificaciones internas
+- Distintas de los emails al cliente. Cada responsable recibe eventos relevantes: pago confirmado, factura vencida, rebote de email, disputa abierta, revisión anual pendiente, aprobación rechazada, etc. (R1, R2)
+- El administrador ve una bandeja global; el usuario ve lo suyo. El superadministrador elige cuáles son dentro de la aplicación, cuáles por email y cuáles en resumen diario. (R2)
+- "Leído" no es lo mismo que "resuelto": algunas alertas se dan por atendidas (por ejemplo, un deber de 20.000 EUR); una informativa ("pago recibido") puede quedar solo leída. Hay estados y prioridades. (R2)
+- Las notificaciones del seguimiento de impago llegan también al responsable (y al administrador). (R1)
+
+Incidencias de facturación
+- Se puede abrir una incidencia asociada a un cliente y opcionalmente a una factura ("NIF incorrecto", "cliente reclama importe", "correo no recibido", "pago no localizado"). Tiene responsable, estado, prioridad, comentarios internos y adjuntos. Puede pausar recordatorios si se indica. Al cerrarla queda la resolución. Es seguimiento administrativo interno, no un sistema de tickets de soporte para clientes. (R2)
+
+Comentarios
+- Internos y asociados a elementos concretos (factura, incidencia). Sin chat general. Pueden mencionar a otro usuario y generarle una notificación. No se envían al cliente. (R2)
+- Dos niveles: comentario normal dentro del ámbito del cliente y nota restringida visible solo para administradores (por ejemplo, negociación de precios). (R2)
+
+Adjuntos
+- Además del PDF de la factura: pedido del cliente, presupuesto aceptado, justificantes, capturas, documentos de la gestoría; con tipo y descripción. Formatos y tamaños limitados, sin ejecutar archivos peligrosos. El acceso sigue los permisos del cliente o factura asociados. (R2)
+
+==================================================
+11. PRESUPUESTOS, RECTIFICATIVAS Y SALDO (ampliaciones)
+==================================================
+- Presupuestos: antes de una factura puntual grande se crea un presupuesto, se envía y se marca aceptado o rechazado; al aceptarse se convierte en factura reutilizando líneas. Presupuesto y factura conservan cada uno su identidad e histórico. No hace falta firma dentro de la plataforma: se registra la aceptación y se adjunta evidencia. (R2)
+- Notas de crédito / rectificativas: si una factura emitida tiene un error o hay que devolver parte, no se edita. Flujo desde la factura original, que propone los datos rectificados, genera el documento y mantiene el vínculo. Requiere permiso administrativo y, según el importe, aprobación. El saldo del cliente se calcula considerando esos documentos. (R2)
+- Saldo distinto de facturación: por ejemplo, 10.000 facturados, 9.000 cobrados y 1.000 pendientes. El dashboard debe explicar de dónde sale cada cifra; al pulsar "1.000 pendiente" se llega al detalle que lo suma. Sin KPIs que no se puedan reconciliar con datos concretos. (R2)
+
+==================================================
+12. PANTALLA DE TRABAJO, DASHBOARD, INFORMES Y BÚSQUEDA
+==================================================
+Pantalla de trabajo diaria (no un dashboard decorativo)
+- Al entrar: facturas que vencen pronto, vencidas, pagos que necesitan conciliación, clientes con problemas de entrega, aprobaciones pendientes, revisiones anuales que tocan y tareas asignadas. Desde ahí se salta al elemento y se resuelve con pocos clics. (R2)
+
+Dashboard financiero (solo administradores)
+- Facturado en la semana, mes, trimestre y año; cobrado; pendiente; vencido; tiempo medio de cobro; evolución; clientes con mayor deuda; ingresos recurrentes esperados del mes; facturación puntual; previsión sencilla basada en recurrencias activas (sin IA). (R1, R2)
+- Objetivo mensual o anual de facturación o cobro, con progreso; solo informativo, solo administradores; guardar el objetivo vigente o dejar constancia de los cambios. (R2)
+
+Informes y exportaciones
+- Informes semanales, mensuales y anuales; el cliente está abierto a propuestas. (R1)
+- Filtros: periodo, cliente, responsable interno, país, sector, estado de factura, tipo (recurrente o puntual) y, si procede, moneda. (R2)
+- Exportación a CSV y informe legible en PDF, respetando los permisos del usuario (quien ve cinco clientes no puede exportar los mil). El archivo lleva fecha y hora, filtros usados y usuario generador (en metadatos o auditoría). Las exportaciones masivas de datos sensibles quedan auditadas. (R2)
+- Informes programados: el administrador configura un resumen semanal o mensual; solo a usuarios autorizados, o notificación con enlace autenticado. (R2)
+- Retención de exportaciones e informes: tiempo configurable, regenerables; política distinta de la de los documentos contables emitidos. (R2)
+- Paquete para la gestoría (mensual o trimestral): listado de facturas emitidas, rectificativas, cobros y PDFs o ZIP; formato configurable o CSV acordado; registrar cuándo se generó y qué periodo cubría; distinguir versiones si se regenera tras una rectificación. La gestoría no tiene usuario en esta versión (si en el futuro lo tiene: acceso extremadamente limitado y temporal). (R2)
+
+Búsqueda y filtros
+- Búsqueda global útil: nombre comercial, razón social, NIF, persona de contacto, número de factura, correo. (R2)
+- Filtros de clientes: ubicación y sector (R1). Filtros de facturas: pagadas, impagadas, recurrentes, fecha (R1). Vistas o filtros guardados (por ejemplo, "mis impagados de más de 15 días"). (R2)
+- Favoritos o recientes para acceso rápido; nunca como mecanismo de autorización (si se copia la URL de una factura no autorizada, el servidor la rechaza). (R2)
+- Historial del cliente: línea temporal de negocio con alta, cambios de responsable, cambios de tarifa, facturas emitidas, pagos, incidencias, pausas, baja y reactivación (no cada clic; la auditoría completa va aparte). (R2)
+
+==================================================
+13. IMPORTACIÓN
+==================================================
+- Importación de clientes por CSV (R1), con previsualización antes de confirmar: mapeo de columnas, errores visibles, decidir si se corrige el fichero o se importan solo filas válidas (política a definir), aviso de NIF duplicado. La importación completa se registra como una operación con resumen de creados, actualizados, rechazados y motivos. (R2)
+- Importación administrativa de histórico de facturas (para una migración futura), distinta de emitir facturas nuevas: no dispara emails ni consume numeración nueva; queda marcada como migrada, con su número y documento original si existe. (R2)
+
+==================================================
+14. USUARIOS, ROLES Y PERMISOS
+==================================================
+Usuarios y acceso
+- Varios usuarios; el administrador puede dar de alta usuarios libremente. Sin autorregistro: el superadministrador o un administrador con permiso crea o invita. (R1, R2)
+- Login con email y contraseña; el email debe pertenecer al dominio corporativo autorizado (Turbine). Recuperación de contraseña con enlaces de caducidad razonable. (R1, R2)
+- Doble factor: no es obligatorio en el alcance mínimo, pero el diseño no debe impedir incorporarlo en el futuro. (R1, R2)
+- Al salir alguien de Turbine se desactiva su cuenta sin borrar el rastro de sus acciones; las sesiones activas del usuario desactivado se invalidan. (R2)
+- Sesiones con expiración por inactividad razonable y cierre de sesión; protección básica contra intentos de login fallidos repetidos sin bloqueos excesivos. (R2)
+
+Roles (R2 aclara los nombres usados en R1)
+- Superadministrador (persona o conjunto muy limitado): configuración profunda (plazo de pago, series, tarifas, reglas), acceso a la auditoría y a las copias de seguridad, aprueba lo de mayor impacto. (R1, R2)
+- Administrador: gestiona operación, clientes, facturas, asignaciones y aprobaciones según permisos; decide qué ve cada usuario operativo y con qué granularidad (incluso por cliente); asigna y desasigna clientes. Ve todos los clientes y el dashboard financiero. (R1, R2)
+- Usuario operativo (en R1 "lector"; el nombre no importa, importa la capacidad): trabaja solo sobre los clientes que tiene asignados; puede ver y modificar su información operativa, crear facturas si su permiso lo permite, seguir cobros y descargar documentos. No puede darse acceso a otro cliente, cambiar tarifas globales, crear series de facturación ni ver el dashboard financiero global. (R2, corrige R1: en R1 se dijo primero que solo veía y descargaba)
+- El administrador podría tener más funciones que se descubrirán durante el desarrollo. (R1)
+- Modelo de autorización coherente, no permisos desperdigados en condiciones por todo el código. (R2)
+- Un usuario no puede decidir por sí mismo que sus clientes no tengan recordatorios de impago, salvo permiso explícito para pausar un caso concreto con motivo. Las reglas corporativas las cambian administrador o superadministrador según el impacto; algunas preferencias personales (como recibir un resumen por email) sí son del usuario. (R2)
+- Datos ocultos por rol: se resuelve con la asignación de clientes; el departamento administrativo ve todos los datos de cada cliente que tenga asignado. (R1)
+
+Asignaciones
+- Al cambiar la asignación, el nuevo responsable hereda las tareas pendientes y el histórico sigue indicando quién hizo cada acción. (R2)
+- Delegación temporal (por ejemplo, vacaciones): un administrador delega los clientes de una persona a otra durante un intervalo sin perder la asignación principal; la delegación caduca. Evita compartir contraseñas. (R2)
+
+Acciones masivas
+- Por ejemplo: reasignar clientes de un empleado que se marcha, exportar una selección, cambiar el sector de varias empresas, generar un informe. Sin acciones masivas tipo "marcar como pagadas" sin controles. Toda acción masiva muestra cuántos elementos afecta, pide confirmación si es destructiva o sensible, y devuelve un resultado con éxitos y errores. (R2)
+
+==================================================
+15. AUDITORÍA, COPIAS DE SEGURIDAD, SEGURIDAD Y PROTECCIÓN DE DATOS
+==================================================
+Auditoría
+- Poder responder quién creó un cliente, cambió un dato fiscal, emitió una factura, cambió un vencimiento, aprobó un descuento, reasignó un cliente, marcó una disputa, hizo una conciliación manual o cambió configuración. No editable por usuarios normales; el superadministrador puede consultarla y filtrarla, pero no reescribir el pasado. (R1, R2)
+- Auditoría (saber qué ocurrió) es distinta de backup (recuperar el sistema). Los logs técnicos (stack traces) son distintos de la auditoría de negocio; no mostrar información técnica sensible al usuario final, pero dar un código de incidencia. (R2)
+
+Copias de seguridad
+- Copias periódicas de todos los movimientos (pagos, registros de clientes, permisos), accesibles para el superadministrador. (R1)
+- Copias automáticas de datos y documentos con política definida y posibilidad de restaurar; hay que diseñar y demostrar el mecanismo (una copia nunca probada no da confianza). (R2)
+
+Seguridad
+- Documentos sensibles: nada en URLs públicas adivinables; el usuario autenticado solo descarga lo que puede ver; enlaces temporales con caducidad. Contraseñas no en texto plano; comunicaciones cifradas; secretos (incluso de Stripe simulado) fuera del repositorio. (R2)
+- API externa con autenticación separada, permisos, límites razonables y registro de llamadas importantes; no puede saltarse las reglas que aplica la interfaz. (R2)
+
+Protección de datos y retención
+- No se inventa asesoramiento jurídico, pero sí minimización y conservación. Debe poder atenderse una petición interna de localizar qué datos personales hay de un contacto. (R2)
+- Al eliminar o anonimizar por obligación legal, el proceso considera registros activos, históricos y copias de seguridad según una política. Una baja comercial no borra automáticamente datos que deben conservarse por obligaciones contables. El PDF emitido se conserva por obligación legal, pero la ficha operativa del contacto puede anonimizarse; razonar y documentar la tensión entre privacidad e histórico, sin borrar columnas a ciegas. (R2)
+- (R1) No se había pensado cómo eliminar a un cliente de las copias de seguridad.
+- Datos de prueba: la aplicación puede cargarse con datos ficticios para demos, sin mezclarlos con producción; nunca datos reales de clientes en repositorios o capturas. (R2)
+- Métricas de uso internas solo agregadas (tiempos de generación, fallos, clics en flujos críticos durante pruebas de usabilidad); sin ranking de trabajadores. (R2)
+
+==================================================
+16. RENDIMIENTO, ESCALABILIDAD Y PROCESOS AUTOMÁTICOS
+==================================================
+- Rendimiento: tareas normales en menos de un minuto y con pocos clics; búsquedas y aperturas habituales prácticamente inmediatas con miles de clientes (no diez segundos por búsqueda). Operaciones pesadas (informe anual grande) en segundo plano con aviso al terminar. (R1, R2)
+- Escalabilidad: miles de clientes y potencialmente cientos de miles de facturas históricas; decenas o centenares de usuarios internos sin rehacer el modelo. No cargar todas las facturas en el navegador para pintar una tabla pequeña. (R1, R2)
+- Disponibilidad: herramienta interna, tolera una caída breve, pero no se puede perder ni duplicar una emisión por recargar la página. (R2)
+- Procesos automáticos con registro de ejecución (generador mensual, recordatorios, conciliación, informes programados): cuántos clientes procesó, cuántas facturas creó, cuáles fallaron y por qué. Si falla un cliente, no se detienen los otros 999. (R2)
+- Tareas en segundo plano con estado (pendiente, procesando, completado con errores) y sin congelar la interfaz; siguen existiendo aunque se cierre la pestaña. Generar 3.000 PDFs puede tardar. (R2)
+- Idempotencia en emisión, envío y conciliación: botones deshabilitados o claves de idempotencia; mejor un mensaje "ya se está procesando" que dos facturas iguales. (R2)
+- Concurrencia: si dos personas abren la misma factura, la segunda no machaca silenciosamente los cambios de la primera (detectar conflictos o bloquear razonablemente). Numeración y conciliación consistentes aunque dos personas pulsen casi a la vez. (R2)
+- Monitorización: pantalla sencilla de salud (última generación recurrente, cola de emails pendientes, errores de integración recientes, último backup correcto); una aplicación que automatiza cobros y falla en silencio es peor que hacerlo a mano. (R2)
+
+==================================================
+17. CONFIGURACIÓN, PLANTILLAS E INTERNACIONALIZACIÓN
+==================================================
+- Configuración global separada de datos operativos: plazo de pago por defecto, cadencia de recordatorios, dominio de correo permitido, datos fiscales de Turbine (emisor), logo y plantilla, series, monedas habilitadas, impuestos disponibles, umbrales de aprobación, canales de notificación y políticas de automatización. Los cambios se validan y se auditan. (R2)
+- Entorno de prueba o simulación antes de activar automatizaciones delicadas: enviarse un email de prueba de una plantilla; previsualizar el calendario de recordatorios para un cliente de ejemplo. (R2)
+- Plantillas de comunicación editables por quien tenga permiso: email de factura, recordatorio previo, vencimiento, impago, disputa resuelta, revisión de datos. Admiten variables (empresa, número de factura, importe, vencimiento, responsable, soporte); la previsualización avisa si falta alguna; historial de versiones o al menos saber qué plantilla se usó en cada envío. (R2)
+- Idioma: interfaz interna inicialmente en español; comunicaciones al cliente con idioma elegible por cliente o contacto; diseño internacionalizable y al menos dos idiomas (español e inglés) en las plantillas principales. (R2)
+- Fechas y zonas horarias: guardar los instantes de forma consistente y mostrarlos en la zona adecuada; para las fechas legales de factura usar la fecha de negocio, no la hora del servidor. (R2)
+- Monedas: una factura se emite en una moneda y se conserva así; para el dashboard global puede convertirse a una moneda base con un tipo de cambio registrado (ampliación); distinguir importe original de importe convertido; la variación del cambio no altera el total legal. (R2)
+- Más de una sociedad emisora en el futuro: no se pide multiempresa completa en el primer despliegue, pero los datos fiscales del emisor son configuración (no hardcodeados). Ampliación: varias entidades emisoras con series y cuentas separadas. (R2)
+- Centros de coste o proyectos (ampliación): clasificación para informes, categorías administrables; cambiar el nombre de una categoría no destruye el histórico. (R2)
+- Alertas configurables (ampliación): por ejemplo, factura con más de 15 días vencida, cliente que acumula más de X euros pendientes, tres fallos de envío, revisión anual sin resolver una semana. Reglas parametrizables y un conjunto cerrado de condiciones, sin motor BPMN. (R2)
+
+==================================================
+18. EXPERIENCIA DE USUARIO, ACCESIBILIDAD Y DISPOSITIVOS
+==================================================
+- Responsive: ordenador, tablet y móvil. En móvil: consultar clientes, aprobar algo urgente, ver impagos, marcar una incidencia o revisar un pago (no configuración compleja de series). Controles utilizables sin depender de pasar el ratón por encima. (R1, R2)
+- Accesibilidad razonable: etiquetas, contraste, teclado, uso con zoom, mensajes de error comprensibles. (R2)
+- Valores por defecto inteligentes en altas frecuentes (país habitual, moneda habitual, vencimiento por defecto, tarifa sugerida según rango), siempre mostrando lo que va a ocurrir antes de confirmar. (R2)
+- Formularios largos con borrador automático; errores claros ("falta el NIF fiscal", no "error 422"). (R2)
+- Consistencia de la interfaz (posición del botón Guardar, estados con etiquetas claras); confirmaciones solo donde aporten seguridad (no veinte popups); atajos para usuarios frecuentes; deshacer en acciones reversibles; explicar antes de confirmar las acciones legalmente irreversibles. (R2)
+- Compatibilidad: navegadores modernos, Android e iOS actuales; PDFs estándar; CSV sin caracteres rotos con tildes o nombres extranjeros. (R2)
+
+==================================================
+19. API E INTEGRACIONES
+==================================================
+- API documentada para que el Brain u otro sistema pueda consultar clientes, estado de deuda, facturas y quizá crear solicitudes controladas. En la práctica basta un subconjunto representativo, pero el contrato debe estar documentado. (R1, R2)
+- Endpoint especialmente útil: dado un identificador de cliente, devolver si hay obligaciones pendientes y el detalle mínimo autorizado. Otro: que un sistema externo notifique "cliente solicita baja" y la aplicación cree la tarea correspondiente; el sistema externo no borra directamente la recurrencia sin pasar por las reglas. (R1, R2)
+- Integraciones prioritarias: CSV y Stripe simulado; correo con un servicio de pruebas; WhatsApp simulable. (R2)
+
+==================================================
+20. TECNOLOGÍA, DESPLIEGUE, DOCUMENTACIÓN, PRUEBAS E IA
+==================================================
+- Tecnología libre: lo importante es que sea funcional, rápida y multidispositivo; software libre o razonablemente accesible; base de datos libre; aplicación web responsive. El stack de Turbine (Go y React) no es requisito para esta aplicación. (R1, R2)
+- Despliegue: separar configuración y secretos del código; al menos un entorno de desarrollo/pruebas y una forma reproducible de poner en marcha producción. (R2)
+- Mantenimiento: código y arquitectura que otro equipo pueda continuar (convenciones, migraciones de base de datos, pruebas, documentación de despliegue); un monolito modular bien hecho sirve; cambiar la cadencia de recordatorios no debe obligar a tocar cinco sitios. (R2)
+- Documentación: de usuario (corta y útil), técnica para desplegar y mantener, modelo de datos y API, decisiones importantes, configuración, cómo restaurar un backup y reglas de negocio. Ni manual de 200 páginas ni README mínimo. La documentación estructurada servirá también a los agentes de IA de Turbine. (R1, R2)
+- Pruebas automáticas de las reglas económicas importantes (prorrateo, generación mensual idempotente, vencimientos, impuestos, permisos, conciliación, cambios de estado) y escenarios de aceptación comprensibles para administración. (R2)
+- IA: no usar IA porque sí; el núcleo debe ser determinista (no depender de tokens para saber si una factura está vencida). Una función inteligente opcional (clasificar conceptos, detectar anomalías) sería una ampliación, desactivable, que nunca se salta permisos y cuyas sugerencias económicas importantes requieren confirmación humana. (R1, R2)
+- Verifactu: no se integra, pasa por la gestoría. (R1, R2)
+
+==================================================
+21. CÓMO QUIERE EL CLIENTE QUE SE TRABAJE EL CASO
+==================================================
+- El cliente da libertad de propuesta, pero sin ignorar lo dicho. Hay cosas obligatorias (son el negocio de Turbine) y otras donde pide análisis. Si el equipo encuentra dos afirmaciones incompatibles, no elige la que le convenga: registra la duda, propone una interpretación y pregunta en la siguiente revisión. (R2)
+- Cuando el equipo decida deliberadamente dejar algo fuera, debe documentarlo como tal. Las decisiones estructurales no deben impedir una evolución razonable (otro plan, otra frecuencia, otra sociedad, nuevos canales). (R2)
+- Habrá revisiones por hitos con cambios controlados (nuevo canal de cobro, segunda sociedad emisora, cambio en la política de aprobación, nueva necesidad de reporting) que no deberían obligar a tirar el sistema. (R2)
+- Una buena entrega es la que explica por qué existe cada cosa, qué requisito satisface, qué ocurre en los casos excepcionales y cómo se comprobó que funciona; y permite seguir una regla desde la entrevista hasta el requisito, el caso de uso, el diseño, la implementación y la prueba. Ejemplo de regla: "un cliente que solicita baja deja de generar nuevas recurrentes pero mantiene el recobro de deuda anterior". (R2)
+- El cliente habla como cliente, no como profesor: no entrega entidades ni casos de uso resueltos (por ejemplo, validar datos fiscales, generar el documento, asignar numeración y, a veces, pedir aprobación: el equipo decide cómo modelarlo; una incidencia de cobro solo aparece ante una discrepancia). (R2)
+- Cierre de la sesión: no hay especificación formal cerrada; el cliente queda disponible para aclaraciones posteriores y acepta que el equipo proponga decisiones si se documentan, se justifican y no contradicen las necesidades expresadas. (R2)
+
+==================================================
+22. ESCENARIO FINAL DEL CLIENTE ("DÍA UNO")
+==================================================
+Es día uno. Hay 2.300 clientes activos y el proceso empieza a generar las recurrentes. A uno le falta el contacto de facturación; otro está pausado; otro tiene una tarifa nueva aprobada ayer; otro tiene baja efectiva desde hoy; otro tiene condiciones a treinta días; otro tiene un descuento que caducó anoche; y Stripe manda a la vez un evento duplicado de una factura del mes pasado. El cliente no quiere que todo falle: quiere que lo normal siga, que las excepciones queden identificadas y que cada una llegue a quien puede resolverla. Ese es, para él, el salto entre una demo de facturas y una herramienta que una empresa puede usar de verdad. (R2)
