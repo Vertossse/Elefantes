@@ -15,7 +15,7 @@ To run this project locally, simply clone the repository and follow these easy s
 
 ```bash
 # Clone the repository
-git clone [https://github.com/vertosofficial/Elefantes.git](https://github.com/vertosofficial/Elefantes.git)
+git clone https://github.com/vertosofficial/Elefantes.git
 
 # Enter the directory
 cd Elefantes
