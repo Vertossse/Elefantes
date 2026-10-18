@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./assets/elefantes.png" alt="Elefantes" width="50%">
+  <img src="./assets/elefantes.png" alt="Elefantes" width="25%">
 
   <h1>Elefantes</h1>
   <i>"Somos elefantes; nuestras palabras tienen peso"</i>
