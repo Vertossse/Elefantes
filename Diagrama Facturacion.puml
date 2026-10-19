@@ -1,0 +1,45 @@
+@startuml name Diagrama Facturacion
+left to right direction
+
+actor "Usuario Operativo" as UO
+actor "Administrador" as Admin
+actor "Superadministrador" as SuperAdmin
+actor "Reloj del Sistema" as Reloj
+
+SuperAdmin --|> Admin
+
+rectangle "Sistema di Facturación y Aprobaciones" {
+    usecase "CU-10 Solicitar excepción comercial"   as CU10
+    usecase "CU-11 Aprobar/rechazar solicitudes"    as CU11
+    usecase "CU-12 Crear factura puntual"           as CU12
+    usecase "CU-13 Emitir factura"                  as CU13
+    usecase "CU-14 Generar facturas recurrentes"    as CU14
+    usecase "CU-15 Rectificar factura emitida"      as CU15
+    usecase "CU-16 Consultar factura y PDF"         as CU16
+    usecase "CU-17 Resolver envío fallido"          as CU17
+}
+
+UO --> CU10
+Admin --> CU10
+Admin --> CU11
+SuperAdmin --> CU11
+UO --> CU12
+Admin --> CU12
+UO --> CU13
+Admin --> CU13
+Reloj --> CU14
+Admin --> CU15
+UO --> CU16
+Admin --> CU16
+UO --> CU17
+Admin --> CU17
+
+' Relaciones
+CU14 ..> CU13 : <<include>>
+CU12 <.. CU13 : <<extend>> \n(emite borrador)
+CU10 <.. CU11 : <<extend>> \n(aprueba/rechaza)
+CU13 <.. CU11 : <<extend>> \n(si supera patrón)
+CU15 <.. CU11 : <<extend>> \n(si supera umbral)
+CU13 <.. CU17 : <<extend>> \n(si rebota correo)
+
+@enduml

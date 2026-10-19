@@ -2,7 +2,9 @@ TRASCRIZIONE DEPURATA COMPLETA - TURBINE (sistema interno di fatturazione e inca
 Unisce la prima riunione (presentazione + domande) e la riunione ampliata. Solo contenuto utile al progetto.
 
 COME LEGGERE QUESTO DOCUMENTO
-- (R1) = prima riunione. (R2) = riunione ampliata. (R2, corregge R1) = R2 modifica o precisa quanto detto in R1.
+- (R1) = prima riunione. 
+- (R2) = riunione ampliata. 
+- (R2, corregge R1) = R2 modifica o precisa quanto detto in R1.
 - In R2 il cliente conferma che tutto ciò di cui si è parlato in R1 resta valido come base; R2 aggiunge situazioni reali che mancavano.
 - Il testo è una sintesi fedele di quanto detto dal cliente (Alejandro). È raggruppato per temi, non in ordine cronologico.
 
