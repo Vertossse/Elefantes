@@ -1,14 +1,15 @@
 @startuml name Diagrama Facturacion
 left to right direction
 
-actor "Usuario Operativo" as UO
-actor "Administrador" as Admin
-actor "Superadministrador" as SuperAdmin
-actor "Reloj del Sistema" as Reloj
+actor "Usuario Operativo"   as UO
+actor "Administrador"       as Admin
+actor "Superadministrador"  as SuperAdmin
+actor "Reloj del Sistema"   as Reloj
 
-SuperAdmin --|> Admin
+' Relaciones de herencia entre actores
+Admin <|-- SuperAdmin
 
-rectangle "Sistema di Facturación y Aprobaciones" {
+rectangle "Sistema de Facturación y Aprobaciones" {
     usecase "CU-10 Solicitar excepción comercial"   as CU10
     usecase "CU-11 Aprobar/rechazar solicitudes"    as CU11
     usecase "CU-12 Crear factura puntual"           as CU12
@@ -19,6 +20,7 @@ rectangle "Sistema di Facturación y Aprobaciones" {
     usecase "CU-17 Resolver envío fallido"          as CU17
 }
 
+' Relaciones de los actores con los casos de uso
 UO --> CU10
 Admin --> CU10
 Admin --> CU11
@@ -34,11 +36,10 @@ Admin --> CU16
 UO --> CU17
 Admin --> CU17
 
-' Relaciones
+' Relaciones entre los casos de uso
 CU14 ..> CU13 : <<include>>
 CU12 <.. CU13 : <<extend>> \n(emite borrador)
-CU10 <.. CU11 : <<extend>> \n(aprueba/rechaza)
-CU13 <.. CU11 : <<extend>> \n(si supera patrón)
+CU13 <.. CU11 : <<extend>> \n(si requiere aprobación)
 CU15 <.. CU11 : <<extend>> \n(si supera umbral)
 CU13 <.. CU17 : <<extend>> \n(si rebota correo)
 
