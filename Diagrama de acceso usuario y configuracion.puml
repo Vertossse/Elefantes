@@ -1,4 +1,4 @@
-@startuml
+@startuml name Diagrama de acceso usuario y configuracion
 left to right direction
 
 actor "Usuario operativo" as UO
