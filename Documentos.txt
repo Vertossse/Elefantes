@@ -2,15 +2,16 @@
 
 1. Informe Scrum (Tania)
 2. Documento de requisitos
-    Analisis de Requisitos 
-    Especificacion de los casos de uso
+    * Análisis de requisitos
+    * Especificación de los casos de uso
 3. Diagrama UML de casos de uso
-    Acceso, Usuarios y configuracion (Fernando)
-    Clientes y suscripcion (Antonio)
-    Facturacion y aprobaciones (Già c'è l'ho)
-    Cobros impagos seguimentos (Tania)
-4. Especificacion de caso de uso (già c'è)
+    * Acceso, usuarios y configuración (Fernando)
+    * Clientes y suscripción (Antonio)
+    * Facturación y aprobaciones (Ya lo tengo)
+    * Cobros impagados y seguimiento (Tania)
+4. Especificación de caso de uso (Ya está hecho / Ya existe)
 
+doc/
 
 GitHub quali file sono da caricare per ultimi
 1. Analisis de Requisitos.md    (Pronto)
