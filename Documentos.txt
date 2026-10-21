@@ -11,8 +11,6 @@
     * Cobros impagados y seguimiento (Tania)
 4. Especificación de caso de uso (Ya está hecho / Ya existe)
 
-doc/
-
 GitHub quali file sono da caricare per ultimi
 1. Analisis de Requisitos.md    (Pronto)
 2. Analisis de Requisitos.pdf   (Pronto)

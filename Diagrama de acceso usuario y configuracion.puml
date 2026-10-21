@@ -5,11 +5,11 @@ actor "Usuario operativo" as UO
 actor "Administrador" as AD
 actor "Superadministrador" as SA
 
+' Relaciones de herencia entre actores
 AD --|> UO
 SA --|> AD
 
 rectangle "Sistema TurbineH" {
-
     usecase "CU-01\nIniciar sesion" as CU01
     usecase "CU-02\nGestionar usuarios internos" as CU02
     usecase "CU-03\nAsignar clientes a un usuario" as CU03
