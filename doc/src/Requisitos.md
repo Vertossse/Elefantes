@@ -34,7 +34,7 @@ Y con ellos también se debe encargar de aportar opciones para filtrar la inform
 
 Con esto hemos visto el alcance de la aplicación en lo referente a la gestión de facturas, pero su otro pilar fundamental es la gestión de los usuario de la propia aplicación.
 
-Esto se llevará a cabo con un sistema de roles que permitirá distinguir entre los roles Usuario y Administrador (Existiendo dentro de este el Super Administrador), cuya principal diferencia es que a los usuarios les serán asignados ciertos clientes por los administradores y solo podrán ver la información de esos clientes y realizar funciones sobre dichos clientes, pero además tendrán otras limitaciones en sus funcionalidades y los parámetros que puedan modificar, que también vendrán impuestas por los administradores.
+Esto se llevará a cabo con un sistema de roles que permitirá distinguir entre los roles Usuario y Administrador (Existiendo dentro de este el Super Administrador), cuya principal diferencia es que a los usuarios les serán asignados ciertos clientes por los administradores y solo podrán ver la información de sus clientes y realizar funciones sobre dichos clientes, pero además tendrán otras limitaciones en sus funcionalidades y los parámetros que puedan modificar, que también vendrán impuestas por los administradores.
 
 Por otra parte los administradores son los que tendrán acceso a toda la información de la aplicación salvo una excepción y su función principal es controlar los registros generales de la plataforma y a sus usuarios, también pueden encargarse de clientes particulares pero la idea de este sistema es gestionar a los propios usuarios y dividirlos entre aquellos dedicados a las operaciones sobre un cliente y a la plataforma en general.
 
@@ -52,7 +52,7 @@ A continuación se listaran a todos los actores y partes interesadas en el funci
 | Empleados con el rol usuario | Empleados de Turbine que usen la aplicación con el rol de usuario | Poder registrar clientes y gestionar a los que tengan asignados por los administradores de forma sencilla. |
 | Empleados con el rol administrador | Empleados de Turbine que usen la aplicación con el rol de administrador | Poder gestionar todos los movimientos y clientes del sistema y tener notificaciones e historial de todo lo que ocurra en la aplicación. |
 | Empleado con el rol super administrador | El empleado de la empresa con el rol de Super Administrador | Poder realizar todas las funciones que pueden hacer los administradores, es decir tener un control general sobre los movimientos del sistema, y poder gestionar las preconfiguraciones de la aplicación. |
-| Clientes de la empresa | Empresa que solicitan los servicios de Turbine y se registraran en la aplicación | Esperan que el sistema les mande correctamente todas las facturas que generen por contratar el servicio de Turbine y que se registre correctamente cuando una factura se haya pagado. |
+| Clientes de la empresa | Empresas que contratan los servicios de Turbine y son registradas internamente en la aplicación por los empleados | Esperan que el sistema les envíe correctamente todas las facturas que generen por contratar el servicio de Turbine y que se registre adecuadamente cuando una factura se haya pagado, sin necesidad de interactuar con la plataforma. |
 | Sistemas de pago | Los medios externos que gestionan los cobros de la empresa | Dar información que le permita al sistema determinar qué facturas se ha cobrado por completo o si alguna se ha cobrado parcialmente. |
 | Departamento financiero | El equipo de la empresa dedicado a la gestión administrativa | Esperan que la aplicación refleje correctamente cualquier factura puntual que un empleado cree y actualice correctamente las facturas recurrentes para que no se escape ninguna factura y no se cree un problema por una factura duplicada. También seguimiento de los cobros pendientes y los impagos del trimestre y buen almacenamiento de todos los datos de la propia facturación que genere la empresa con el servicio que el sistema recopila. |
 | Autoridades legales y equipo legal | Se refiere tanto al propio departamento legal de la empresa como en general a las propias autoridades exteriores de la empresa | Que la aplicación cumpla todas las leyes de protección de datos y privacidad de la normativa vigente del país donde se ubique la empresa. |
@@ -66,7 +66,7 @@ A continuación se listaran a todos los actores y partes interesadas en el funci
 
 Los requisitos de negocio recogen lo que Turbine necesita como empresa para que la aplicación administrativa interna sea válida: reglas, políticas y restricciones que el sistema debe respetar con independencia de qué empleado lo use. Se redactan igual que los requisitos de usuario, pero aquí quien "espera" es la empresa.
 
-Para los requisitos de negocio, Turbine como empresa es el único acto, por lo que la empresa exige su cumplimiento sea cual sea el rol que lo lleve a cabo.
+Para los requisitos de negocio, Turbine como empresa es el único actor, por lo que la empresa exige su cumplimiento sea cual sea el rol que lo lleve a cabo.
 
 Respecto a las entrevistas y reuniones donde se obtuvieron los requisitos:
 
@@ -99,7 +99,7 @@ La facturación es el núcleo del negocio. Turbine necesita que las facturas sea
 | RNG-08 | Turbine distingue entre facturas recurrentes, que se generan automáticamente, y facturas puntuales, que se crean a mano, y necesita que el sistema permita tratar de forma distinta a los clientes con condiciones excepcionales | RI y RA |
 | RNG-09 | Turbine exige que toda factura tenga un identificador único dentro de un sistema de series, controlado por el Super Administrador | RA |
 | RNG-10 | Turbine exige que una factura emitida no pueda borrarse como si nunca hubiera existido, y que las correcciones o devoluciones se hagan con facturas rectificativas o notas de crédito vinculadas a la original, que requerirán aprobación si superan un umbral | RA |
-| RNG-11 | Turbine exige que una factura solo pueda modificarse mientras esté vigente (no pagada), no haya terminado el trimestre en que se emitió y no se altere información sensible | RI |
+| RNG-11 | Turbine exige que una factura solo pueda editarse libremente mientras se encuentre en estado de borrador antes de su emisión; una vez emitida o con el periodo administrativo cerrado, cualquier cambio relevante debe ser trazable y realizarse mediante factura rectificativa | RI y RA |
 | RNG-12 | Turbine necesita que antes de emitir una factura exista una vista previa con control de errores (datos faltantes o incorrectos) que permita bloquear la emisión de las que no cumplan los requisitos de la empresa, y que se genere siempre en el formato estándar de la empresa | RI y RA |
 | RNG-13 | Turbine exige que la numeración, las operaciones monetarias críticas y la conciliación sean consistentes aunque dos personas actúen casi a la vez, detectando el conflicto o bloqueando la operación de una manera razonable | RA |
 | RNG-14 | Turbine necesita un catálogo de productos ligero cuyos cambios no modifiquen nunca las facturas antiguas | RA |
@@ -112,6 +112,7 @@ La facturación es el núcleo del negocio. Turbine necesita que las facturas sea
 | RNG-21 | Turbine necesita poder acordar una pausa temporal con un cliente: durante la pausa no se generan mensualidades, pero el cliente sigue existiendo y puede conservar facturas antiguas pendientes. La pausa debe tener motivo, fecha de inicio y, si se conoce, fecha prevista de reactivación, y al llegar esa fecha el sistema avisará al responsable sin asumir nada importante si la política exige confirmación | RA |
 | RNG-22 | Turbine exige que, cuando un cliente cause baja, se dejen de generar mensualidades desde la fecha de baja, pero que el cobro de las facturas anteriores siga activo si las hay. Si no tiene facturas pendientes, la recurrencia se cierra en la fecha efectiva | RI y RA |
 | RNG-23 | Turbine necesita poder asociar documentos de soporte (presupuestos, pedidos, justificantes de cobro) a clientes y facturas, controlando formatos, tamaños y permisos de acceso | RA |
+
 
 ### 2 Requisitos de negocio de control interno (RNC)
 
@@ -142,6 +143,7 @@ Las reglas del negocio cambian con el tiempo y Turbine necesita poder ajustarlas
 | RNC-12 | Turbine exige un entorno de prueba o simulación para previsualizar plantillas y reglas de recordatorio antes de activar automatizaciones que puedan resultar peligrosas | RA |
 | RNC-13 | Turbine necesita fijar objetivos de facturación mensuales o anuales y ver su progreso en el panel de administración | RA |
 
+
 ### 3 Requisitos de negocio de comunicación e integración (RNI)
 
 Turbine se comunica con sus clientes por el canal que estos autorizan, y necesita que otros sistemas de la empresa puedan consultarle o avisarle.
@@ -155,6 +157,7 @@ Turbine se comunica con sus clientes por el canal que estos autorizan, y necesit
 | RNI-05 | Turbine necesita que los empleados puedan dejar comentarios y notas privadas en facturas y fichas de cliente, con menciones a otros empleados que generen notificaciones internas | RA |
 | RNI-06 | Turbine necesita que sistemas externos (como Brain) puedan consultar por API si un cliente tiene facturas pendientes, y que el sistema pueda recibir por API solicitudes de baja y generar el flujo interno de cierre sin eliminar el cobro de lo pendiente | RA |
 | RNI-07 | Turbine exige una buena integración del sistema con los elementos fundamentales de la empresa, como la base de datos o la pasarela de pago, manteniendo a la vez su independencia de cualquier otro módulo, de forma que su actividad no afecte a otros ni se vea afectada por ellos | RI |
+
 
 ### 4 Requisitos de negocio de seguridad y continuidad (RNS)
 
@@ -223,17 +226,17 @@ Esas limitaciones se refieren a que el usuario tendrá una serie de clientes asi
 | URU-01 | US | Poder acceder a las facturas no declaradas todavía como "pagadas" de los clientes que tenga asignados, es decir, a las facturas todavía vigentes | RI |
 | URU-02 | US | Poder generar nuevas facturas de los clientes que tenga asignados cuando esta no pueda procesarse automáticamente (véase por ejemplo que se le asocie un cliente puntual, cuyas facturas se hacen a mano, o iniciar la recurrencia de uno recurrente) | RI |
 | URU-03 | US | Poder registrar nuevos clientes siempre y cuando un administrador le haya dado permiso para ello | RI |
-| URU-04 | US | Poder modificar las facturas de sus clientes asignados siempre y cuando se cumplan las restricciones de modificación que estas tienen (estar vigente, no haber terminado el trimestre donde se emitió la factura, etc.) y siempre y cuando no se modifique información sensible (Con un umbral de la sensibilidad decidido por el Super Administrador) | RI |
+| URU-04 | US | Poder modificar las facturas de sus clientes asignados siempre y cuando se cumplan las restricciones de modificación que estas tienen (estar vigente, no haberse emitido todavía, no haber terminado el trimestre donde se emitió la factura, etc.) y siempre y cuando no se modifique información sensible como el precio (Con un umbral de la sensibilidad decidido por el Super Administrador) | RI |
 | URU-05 | US | Filtrado y conocimiento de la información relevante de las facturas y el historial de los clientes asignados | RI |
-| URU-06 | US | Poder realizar chequeos a sus clientes o facturas de estos de forma rápida (con pocos clicks). |  |
+| URU-06 | US | Poder realizar chequeos a sus clientes o facturas de estos de forma rápida (con pocos clicks). | RI y RA |
 | URU-07 | US | Que el sistema guarde la suficiente información que la empresa pueda necesitar para la comunicación o los chequeos y que bloquee los intentos de registros donde falte la información que se considere más importante (Para que no haya problemas de comunicación en el futuro) | RI |
 | URU-08 | US | Espera que el sistema sea capaz de gestionar automáticamente los proceso comunes a todos sus clientes, como el envío de la facturas, y generación automática de las recurrentes, envío de notificaciones de pago/impago, conversión de las facturas al formato estándar de la empresa, envío de notificaciones al superadministrador, etc | RI |
 | URU-09 | US | De la misma forma espera la posibilidad de descargar y recuperar información de las facturas de sus clientes (También sujeto a limitaciones impuestas de los administradores) | RI |
 | URU-10 | US | Espera transparencia y claridad en la explicación de sus funciones y limitaciones, con una buena documentación de las funciones que sí tiene permitido realizar y aquellas limitaciones y el porqué se le restringen esas funciones, para facilitar conversaciones en la empresa en caso de ser necesaria (véase por ejemplo, te lo impide un administrador, es algo que solo puede hacer el superadministrador, etc.) | RI |
 | URU-11 | US | El usuario espera estar asignado por defecto a un cliente y recibir notificaciones cuando algún administrador le dé o quite permisos para ciertas acciones | RI |
-| URU-12 | US | El usuario espera que a partir del historial de movimientos globales de la plataforma poder conocer su historia de asignaciones o restricciones de permisos, es decir, poder conocer las cambios de permisos y asignaciones que ha tenido desde que se le registró como un usuario en la plataforma. Esta información también se espera si se cambia el rol del usuario por si fuera necesaria (véase que un cliente se queda sin nadie que se encargue de él y se le da a otro usuario). |  |
-| URU-13 | US | El usuario espera un información y alineamiento entre los clientes que tiene asignados y los permisos que tiene, y las funciones que puede realizar, es decir espera poder conocer sobre qué clientes puede hacer modificaciones y cuales puede hacer (y por supuesto que eso se alinee con lo que la aplicación al final le deje). |  |
-| URU-14 | US | El usuario espera también automatización, sobre el guardado, borrado y modificado de cualquier dato en la base de datos llevado a cabo por sus acciones permitidas. |  |
+| URU-12 | US | El usuario espera que a partir del historial de movimientos globales de la plataforma poder conocer su historia de asignaciones o restricciones de permisos, es decir, poder conocer las cambios de permisos y asignaciones que ha tenido desde que se le registró como un usuario en la plataforma. Esta información también se espera si se cambia el rol del usuario por si fuera necesaria (véase que un cliente se queda sin nadie que se encargue de él y se le da a otro usuario). | RI y RA |
+| URU-13 | US | El usuario espera un información y alineamiento entre los clientes que tiene asignados y los permisos que tiene, y las funciones que puede realizar, es decir espera poder conocer sobre qué clientes puede hacer modificaciones y cuales puede hacer (y por supuesto que eso se alinee con lo que la aplicación al final le deje). | RI y RA |
+| URU-14 | US | El usuario espera también automatización, sobre el guardado, borrado y modificado de cualquier dato en la base de datos llevado a cabo por sus acciones permitidas. | RI |
 
 #### 1.2 Administrador:
 
@@ -243,22 +246,22 @@ Así como el usuario posteriormente se refirió como el "lector", pese a que ya 
 
 | ID | Actor | Requisito | Fuente |
 |---|---|---|---|
-| URA-01 | AD | El administrador espera poder dar de alta clientes en la plataforma sin restricciones de ningún tipo. |  |
+| URA-01 | AD | El administrador espera poder dar de alta clientes en la plataforma sin restricciones de ningún tipo. | RI y RA |
 | URA-02 | AD | El administrador espera tener acceso a todas las facturas vigentes de todos los clientes registrados en el sistema | RI |
-| URA-03 | AD | El administrador espera poder generar facturas de todos los clientes que estén registrados o vayan a registrarse en la plataforma siempre y cuando está necesite crearse manualmente | RI |
-| URA-04 | AD | El administrador espera poder modificar facturas vigentes de todos los clientes siempre y cuando se cumplan las múltiples restricciones de las modificaciones (La propia vigencia, o sea que no se haya pagado, haya pasado el trimestre o se modifiquen datos sensibles) | RI |
+| URA-03 | AD | El administrador espera poder generar facturas de todos los clientes que estén registrados o vayan a registrarse en la plataforma siempre y когда está necesite crearse manualmente | RI |
+| URA-04 | AD | El administrador espera poder modificar facturas vigentes de todos los clientes siempre y cuando se cumplan las múltiples restricciones de las modificaciones (La propia vigencia, o sea que no se haya pagado, que no se haya emitido todavía, haya pasado el trimestre o se modifiquen datos sensibles) | RI |
 | URA-05 | AD | El administrador espera poder asignar o quitar la asignación de clientes a usuarios para habilitarlos a poder gestionar las facturas vigentes de estos | RI |
 | URA-06 | AD | El administrador espera poder cambiar los permisos de los usuarios para limitar las funciones que estos pueden realizar sobre sus clientes (Poder modificar o no una factura de su cliente, qué valores puede modificar, etc.) y controlar los movimientos más importantes que estos realicen | RI |
 | URA-07 | AD | El administrador espera poder acceder al registro de movimientos globales de la aplicación, aquel que registra todas las nuevas facturas, registro de clientes, facturas pagadas/vencidas, cambios en los usuarios, etc. | RI |
 | URA-08 | AD | El administrador espera que el sistema informe no sólo sobre lo más esencial, como los clientes y empleados registrados, así como el valor de las preconfiguraciones, y de las capacidades y limitaciones que este rol tiene (como requisito no funcional se verá que se espera sencillez en este apartado) | RI |
 | URA-09 | AD | El administrador espera que el sistema pueda mostrarle un registro de los impagos de todos los clientes, así como las correspondientes opciones de filtrado pertinentes | RI |
-| URA-10 | AD | El administrador espera que el sistema sepa gestionar automáticamente todos los procesos comunes a todos los clientes, como la renovación automática de las facturas puntuales, crear la factura tanto en la aplicación como en el formato estándar de la empresa que se le envía al cliente, así como el envío de notificaciones de pago o impago | RI |
+| URA-10 | AD | El administrador espera que el sistema sepa gestionar automáticamente todos los procesos comunes a todos los clientes, como la generación automática de las facturas recurrentes, crear la factura tanto en la aplicación como en el formato estándar de la empresa que se le envía al cliente, así como el envío de notificaciones de pago o impago | RI |
 | URA-11 | AD | El administrador espera que el sistema le permita correctamente acceder al registro de todos los clientes en todos tipo de ámbitos (su registro particular, los movimientos relacionados a ellos en el de movimientos, sus impagos en el de los impagos, etc.) y que no sufra ningún tipo de restricción (salvo en las funciones del super Administrador) | RI |
 | URA-12 | AD | Así como un acceso al historial global de movimientos, el administrador espera la existencia y acceso a un historial de movimientos propios que permita otra forma de ver a qué cliente está asociado cada usuario o si algún cliente se ha quedado sin usuario asignado al quitar la asignación a uno que estaba antes | RI |
 | URA-13 | AD | El administrador espera la posibilidad (y facilidad) de poder descargar y recuperar la información de todos los clientes, ya sea una descarga de algún documento puntual como un pdf con una factura o acceder al registro de un cliente y ver datos como el teléfono y persona de contacto | RI |
-| URA-14 | AD | El administrador espera poder dar de baja a los clientes sin restricciones y siempre cumpliendo las condiciones de la plataforma (no se da de baja hasta que no tenga facturas vigentes pero se le deja de mandar la factura recurrente) | RI |
+| URA-14 | AD | El administrador espera poder dar de baja a los clientes sin restricciones y siempre cumpliendo las condiciones de la plataforma, refiriéndose estas restricciones a que si un cliente tiene una factura pendiente no se eliminará su registro completamente, pero se le dejarán de enviar las facturas recurrentes, como una especie de 'baja parcial' | RI |
 | URA-15 | AD | El administrador también espera automatización en todo lo referente al guardado y borrado de los datos del cliente en la base de datos | RI |
-| URA-16 | AD | El administrador espera que el sistema le permita asociarse a él o a otros administradores a ciertos clientes o que al menos estos puedan gestionar y estar al pendientes de las acciones en cuanto al envío de facturas de estos. Al no tener restricciones como el usuario la asignación del administrador parece más contradictoria, pero aunque este pueda seguir accediendo a todos los movimientos y todas las notificaciones enviadas por los clientes, el sistema debería permitir que los administradores realicen un seguimiento a clientes en particular. La diferencia sería que las notificaciones acerca de estos particulares le llegaría a él directamente, mientras que las otras no, pero las podría seguir viendo | RI |
+| URA-16 | AD | El administrador espera que el sistema le permita asociarse a él o a otros administradores a ciertos clientes o que al menos estos puedan gestionar y estar al pendientes de las acciones en cuanto al envío de facturas de estos. Al no tener restricciones como el usuario la asignación del administrador parece más contradictoria, pero aunque este pueda seguir accediendo a todos los movimientos y todas las notificaciones enviadas por los clientes, el sistema debe permitir que los administradores realicen un seguimiento a clientes en particular. La diferencia sería que las notificaciones acerca de estos particulares le llegaría a él directamente, mientras que las otras no, pero las podría seguir viendo | RI |
 | URA-17 | AD | De la misma forma, al igual que a un usuario, el administrador puede asignarse particularmente a varios clientes, el sistema debe permitirle, además de ver la información general, los clientes a los que les haya hecho seguimiento particular | RI |
 
 #### 1.3 Super Administrador:
@@ -269,13 +272,13 @@ Por ello es que sus requisitos de usuario realmente son los del administrador m�
 
 | ID | Actor | Requisito | Fuente |
 |---|---|---|---|
-| URS-01 | SAD | El super administrador espera que el sistema le permita registrar clientes, crear nuevas facturas, modificar las facturas ya existentes (siguiendo siempre las restricciones) o dar de baja a los clientes (también siguiendo el procedimiento que se aplica al dar de baja a los clientes) | RI |
+| URS-01 | SAD | El super administrador espera que el sistema le permita registrar clientes, crear nuevas facturas, modificar las facturas ya existentes (siguiendo siempre las restricciones), pausar la facturación de los clientes y gestionar su reactivación o dar de baja a los clientes (también siguiendo el procedimiento que se aplica al dar de baja a los clientes) | RI |
 | URS-02 | SAD | El Super Administrador espera poder cambiar los clientes que tiene asignado cada usuario así como las limitaciones sobre las funciones que tiene asignadas cada usuario | RI |
 | URS-03 | SAD | El super administrador espera que el sistema lleve y le permita acceder a un registro con todos los clientes, los empleados registrados y el registro particular de cada uno de estos, un historial de todos los movimientos de la aplicación, un historial de los impagos y los cobros y el historial de cada cliente y de notificaciones a administradores y usuarios. En general, que a diferencia de los otros 2, este pueda acceder a absolutamente toda la información en cuanto a los movimientos en la aplicación se refiere, de diferentes formas según se quiera ver algo más general o específico y con las opciones de filtrado correspondiente | RI |
 | URS-04 | SAD | El super administrador espera que el sistema le muestra (y de forma sencilla) todas las funciones que puede realizar en la aplicación tanto para el mismo como en los registros particulares del resto de empleados, así como de los valores actuales de las preconfiguraciones que él y solo él podrá cambiar | RI |
 | URS-05 | SAD | El super usuario espera que el sistema automatice todos los proceso comunes a todos los clientes, como las factura recurrentes o el envío de notificaciones | RI |
 | URS-06 | SAD | El super administrador espera recibir notificaciones de cualquier movimiento destacado de la aplicación como lo serían cambiar los permisos de un usuario, dar de alta o baja a un cliente o empleado, un pago, un impago o un problema que haya ocurrido, la diferencia con un requisito anterior, es que el super administrador podrá acceder al historial de todos los movimientos que también ven los administradores pero al le llegarán notificaciones informando de esos movimientos | RI |
-| URS-07 | SAD | El super administradores espera que el sistema le permite cambiar las configuraciones o preconfiguraciones de la aplicación, permitiendo cambiar algunos de los valores más importantes, como los datos que debe dar un cliente, los datos considerados "sensibles" y que pueden limitar a usuarios y hasta administradores o serán obligatorios para dar de alta a un cliente, el número de días que tiene un cliente para pagar su factura, la periodicidad de los envíos de notificaciones al cliente, todo lo relacionado a permisos de usuario y roles de cada empleados, modificación de facturas (sujeto a restricciones y cambios que se aplicarán al instante o al mes siguiente), el medio por donde se enviarán las facturas (se le impondrá que sea uno que con los datos obligatorios sea posible) e incluso modificar algunos datos más sensibles. |  |
+| URS-07 | SAD | El super administradores espera que el sistema le permite cambiar las configuraciones o preconfiguraciones de la aplicación, permitiendo cambiar algunos de los valores más importantes, como los datos que debe dar un cliente, los datos considerados "sensibles" y que pueden limitar a usuarios y hasta administradores o serán obligatorios para dar de alta a un cliente, el número de días que tiene un cliente para pagar su factura, la periodicidad de los envíos de notificaciones al cliente, todo lo relacionado a permisos de usuario y roles de cada empleados, modificación de facturas (sujeto a restricciones y cambios que se aplicarán al instante o al mes siguiente), el medio por donde se enviarán las facturas (se le impondrá que sea uno que con los datos obligatorios sea posible) e incluso modificar algunos datos más sensibles | RI y RA |
 
 ### 2 Requisitos de usuarios generales:
 
@@ -301,9 +304,9 @@ En esta sección se van a incluir una serie de requisitos de usuario no directam
 | ID | Actor | Requisito | Fuente |
 |---|---|---|---|
 | RNDF-01 | CE | El empleado espera que el sistema tenga una buena integración con elementos fundamentales de la empresa para el correcto funcionamiento de esta, como la base de datos o la pasarela de pago | RI |
-| RNDF-02 | CE | Relacionado al anterior el usuario espera automatización en los procesos comunes a todos los clientes y para los cuales ha sido diseñada esta aplicación, como lo son el envío de facturas o los múltiples historiales | RI |
+| RNDF-02 | CE | Relacionado al anterior el usuario espera automatización en los procesos comunes a todos los clientes y para los cuales ha sido diseñada esta aplicación, como lo son el envío de facturas en el formato estándar de la empresa o los múltiples historiales | RI |
 | RNDF-03 | CE | Portabilidad y simplicidad, el empleado espera no solo poder acceder al sistema desde cualquier dispositivo que suela usar para trabajar sino además que el sistema se mantenga en todo momento simple y rápido de usar especialmente para acciones más comunes y estándar, como generar una factura o dar de alta un cliente | RI |
-| RNDF-04 | CE | Independecia, debido al carácter de esta aplicación, el usuario espera que el sistema funcione de forma independiente de cualquier otro módulo de la empresa y que su actividad no afecte a la de cualquier otro donde este se halle involucrado ni viceversa | RI |
+| RNDF-04 | CE | Independencia, debido al carácter de esta aplicación, el usuario espera que el sistema funcione de forma independiente de cualquier otro módulo de la empresa y que su actividad no afecte a la de cualquier otro donde este se halle involucrado ni viceversa | RI |
 | RNDF-05 | CE | Documentación, el usuario espera transparencia, claridad y documentación de todas las funciones que el sistema puede realizar, y esto se hará a partir de identificadores en el propio sistema, como con una descripción del sistema de roles o la simplicidad de la interfaz que no dé lugar a error en lo que produce cada acción | RI |
 | RNDF-06 | CE | Vista inicial, el empleado espera que la vista inicial que observa al entrar en la aplicación refleje las facturas y movimientos más importantes de ese momento como las pendientes a pagar, no pagadas del todo, clientes con problemas o impagos recientes, para poder acceder rápidamente a ellos | RA |
 
@@ -312,9 +315,7 @@ En esta sección se van a incluir una serie de requisitos de usuario no directam
 
 ### 4.1. Requisitos funcionales
 
-Los requisitos funcionales describen comportamientos, servicios u operaciones que
-debe proporcionar el sistema. Siempre que sea posible, deben formularse de manera
-clara, precisa y verificable.
+Los requisitos funcionales describen comportamientos, servicios u operaciones que debe proporcionar el sistema. Siempre que sea posible, deben formularse de manera clara, precisa y verificable.
 
 «El sistema» es la aplicación administrativa interna de Turbine.
 
@@ -328,141 +329,141 @@ clara, precisa y verificable.
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| CLI-01 | El sistema deberá permitir crear, modificar y consultar empresas cliente con nombre comercial, razón social, identificador fiscal, domicilio, país, moneda y contacto, sin asumir formato nacional del identificador ni estructura fija de dirección, distinguiendo los datos imprescindibles para facturar de los meramente convenientes y proponiendo valores por defecto con un resumen antes de confirmar el alta. |  |
-| CLI-02 | El sistema deberá permitir varias personas de contacto por empresa con su rol (contratación, facturación, impagos), una misma persona en varias empresas y marcar contactos como inactivos sin perder el histórico de envíos, avisando si se intenta eliminar el único contacto de facturación de un cliente activo. |  |
-| CLI-03 | El sistema deberá asignar un responsable interno a cada cliente y gestionar los estados del cliente que afectan a la facturación, con consecuencias explícitas en cada cambio. |  |
-| CLI-04 | El sistema deberá aplicar borrado lógico a los clientes, permitir reactivar la ficha histórica de un cliente que vuelve y avisar de posibles duplicados por identificador fiscal sin fusionar fichas automáticamente. |  |
-| CLI-05 | El sistema deberá mostrar una línea temporal de negocio por cliente y permitir etiquetas libres que no sustituyan a los estados. |  |
+| CLI-01 | El sistema deberá permitir crear, modificar y consultar empresas cliente con nombre comercial, razón social, identificador fiscal, domicilio, país, moneda y contacto, sin asumir formato nacional del identificador ni estructura fija de dirección, distinguiendo los datos imprescindibles para facturar de los meramente convenientes y proponiendo valores por defecto con un resumen antes de confirmar el alta. | Relacionado con RG-06 |
+| CLI-02 | El sistema deberá permitir varias personas de contacto por empresa con su rol (contratación, facturación, impagos), una misma persona en varias empresas y marcar contactos como inactivos sin perder el histórico de envíos, avisando si se intenta eliminar el único contacto de facturación de un cliente activo. | Relacionado con RG-06 |
+| CLI-03 | El sistema deberá asignar un responsable interno a cada cliente y gestionar los estados del cliente que afectan a la facturación, con consecuencias explícitas en cada cambio. | Relacionado con UR-11 |
+| CLI-04 | El sistema deberá aplicar borrado lógico a los clientes, permitir reactivar la ficha histórica de un cliente que vuelve y avisar de posibles duplicados por identificador fiscal sin fusionar fichas automáticamente. | Relacionado con URA-14 |
+| CLI-05 | El sistema deberá mostrar una línea temporal de negocio por cliente y permitir etiquetas libres que no sustituyan a los estados. | Relacionado con RG-02 |
 
 #### 2. Relación comercial (suscripción)
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| SUB-01 | El sistema deberá representar la relación comercial separada de las facturas (inicio, plan, tarifa, responsable, condiciones de pago, documentos firmados asociados), sin permanencias, y generar a partir de ella las facturas recurrentes. |  |
-| SUB-02 | El sistema deberá gestionar fechas de inicio futuras, sin facturas ni recordatorios hasta esa fecha, y bloquear la activación de la recurrencia si faltan datos fiscales, indicando cuáles. |  |
-| SUB-03 | El sistema deberá calcular y mostrar el prorrateo del alta antes de confirmar, con una única regla documentada (meses de longitud variable, alta el último día del mes), y permitir la excepción «facturar desde el mes siguiente sin prorrateo». |  |
-| SUB-04 | El sistema deberá permitir pausas (con motivo, fecha de inicio y fecha prevista de reactivación) y bajas, sin generar mensualidades durante la pausa ni desde la fecha efectiva de baja y manteniendo el recobro de las facturas anteriores. |  |
+| SUB-01 | El sistema deberá representar la relación comercial separada de las facturas (inicio, plan, tarifa, responsable, condiciones de pago, documentos firmados asociados), sin permanencias, y generar a partir de ella las facturas recurrentes. | Relacionado con URU-02 |
+| SUB-02 | El sistema deberá gestionar fechas de inicio futuras, sin facturas ni recordatorios hasta esa fecha, y bloquear la activación de la recurrencia si faltan datos fiscales, indicando cuáles. | Relacionado con URA-03 |
+| SUB-03 | El sistema deberá calcular y mostrar el prorrateo del alta antes de confirmar, con una única regla documentada (meses de longitud variable, alta el último día del mes), y permitir la excepción «facturar desde el mes siguiente sin prorrateo». | Relacionado con RG-05 |
+| SUB-04 | El sistema deberá permitir pausas (con motivo, fecha de inicio y fecha prevista de reactivación) y bajas, sin generar mensualidades durante la pausa ni desde la fecha efectiva de baja y manteniendo el recobro de las facturas anteriores. | Relacionado con URS-01 |
 
 #### 3. Tarifas y revisión anual
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| TAR-01 | El sistema deberá permitir al SA gestionar como configuración los rangos de facturación anual y sus precios, garantizando que los cambios no alteren facturas históricas y rigen desde su fecha de efecto. |  |
-| TAR-02 | El sistema deberá gestionar la revisión anual de rango (listar clientes a revisar, aceptar el dato verificado con referencia y fecha, proponer el rango) y exigir validación humana antes de cambiar el precio, registrando quién aprueba, cuándo y precio anterior y nuevo, sin emitir facturas retroactivas automáticamente. |  |
+| TAR-01 | El sistema deberá permitir al SA gestionar como configuración los rangos de facturación anual y sus precios, garantizando que los cambios no alteren facturas históricas y rigen desde su fecha de efecto. | Relacionado con URS-07 |
+| TAR-02 | El sistema deberá gestionar la revisión anual de rango (listar clientes a revisar, aceptar el dato verificado con referencia y fecha, proponer el rango) y exigir validación humana antes de cambiar el precio, registrando quién aprueba, cuándo y precio anterior y nuevo, sin emitir facturas retroactivas automáticamente. | Relacionado con URS-06 |
 
 #### 4. Descuentos y aprobaciones
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| APR-01 | El sistema deberá gestionar excepciones comerciales (descuento temporal, primer mes gratis, precio pactado) que un UO proponga, un AD apruebe y el SA apruebe si superan un umbral configurable. |  |
-| APR-02 | El sistema deberá dejar pendiente de aprobación, explicando el motivo, los importes modificados a mano, descuentos extraordinarios, vencimientos atípicos, facturas puntuales muy altas y rectificaciones según importe, con bandeja de aprobaciones, sin autoaprobación cuando se exija separación de funciones y con reasignación o suplente registrados. |  |
+| APR-01 | El sistema deberá gestionar excepciones comerciales (descuento temporal, primer mes gratis, precio pactado) que un UO proponga, un AD apruebe y el SA apruebe si superan un umbral configurable. | Relacionado con URS-07 |
+| APR-02 | El sistema deberá dejar pendiente de aprobación, explicando el motivo, los importes modificados a mano, descuentos extraordinarios, vencimientos atípicos, facturas puntuales muy altas y rectificaciones según importe, con bandeja de aprobaciones, sin autoaprobación cuando se exija separación de funciones y con reasignación o suplente registrados. | Relacionado con URS-06 |
 
 #### 5. Facturas
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| FAC-01 | El sistema deberá gestionar facturas recurrentes y puntuales con varias líneas (concepto, cantidad, precio, descuento, impuesto), moneda de emisión conservada, catálogo ligero de conceptos e impuestos configurables, sin que los cambios de catálogo afecten a facturas existentes. |  |
-| FAC-02 | El sistema deberá gestionar un ciclo de vida de la factura donde «pagada» solo signifique cobro detectado o validado y sea distinta de anulada, rectificada e incobrable. |  |
-| FAC-03 | El sistema deberá permitir corregir una factura antes de emitirla, hacer trazable todo cambio relevante posterior sin alteraciones silenciosas y eliminar solo borradores nunca emitidos. |  |
-| FAC-04 | El sistema deberá asignar al emitir un número único dentro de la serie (configurable por el SA), también con operaciones concurrentes, y usar como fecha legal la fecha de negocio y no la hora del servidor. |  |
-| FAC-05 | El sistema deberá mostrar una vista previa antes de emitir, bloquear la emisión si falta un dato fiscal imprescindible indicando cuál y advertir, sin bloquear, si el importe se aparta del patrón del cliente según una regla configurable. |  |
-| FAC-06 | El sistema deberá ofrecer un flujo de rectificación o nota de crédito vinculado a la factura original, con permiso administrativo y aprobación según importe, y calcular el saldo del cliente considerando las rectificaciones. |  |
-| FAC-07 | El sistema deberá permitir importar histórico de facturas clasificadas como «migradas», sin envíos ni consumo de numeración. |  |
+| FAC-01 | El sistema deberá gestionar facturas recurrentes y puntuales con varias líneas (concepto, cantidad, precio, descuento, impuesto), moneda de emisión conservada, catálogo ligero de conceptos e impuestos configurables, sin que los cambios de catálogo afecten a facturas existentes. | Relacionado con RG-06 |
+| FAC-02 | El sistema deberá gestionar un ciclo de vida de la factura donde «pagada» solo signifique cobro detectado o validado y sea distinta de anulada, rectificada e incobrable. | Relacionado con RG-06 |
+| FAC-03 | El sistema deberá permitir corregir una factura antes de emitirla, hacer trazable todo cambio relevante posterior sin alteraciones silenciosas y eliminar solo borradores nunca emitidos. | Relacionado con URA-04 |
+| FAC-04 | El sistema deberá asignar al emitir un número único dentro de la serie (configurable por el SA), también con operaciones concurrentes, y usar como fecha legal la fecha de negocio y no la hora del servidor. | Relacionado con URS-01 |
+| FAC-05 | El sistema deberá mostrar una vista previa antes de emitir, bloquear la emisión si falta un dato fiscal imprescindible indicando cuál y advertir, sin bloquear, si el importe se aparta del patrón del cliente según una regla configurable. | Relacionado con RG-07 |
+| FAC-06 | El sistema deberá ofrecer un flujo de rectificación o nota de crédito vinculado a la factura original, con permiso administrativo y aprobación según importe, y calcular el saldo del cliente considerando las rectificaciones. | Relacionado con URA-14 |
+| FAC-07 | El sistema deberá permitir importar histórico de facturas clasificadas como «migradas», sin envíos ni consumo de numeración. | Relacionado con URS-01 |
 
 #### 6. Generación recurrente
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| GEN-01 | El sistema deberá generar automáticamente las facturas recurrentes el día 1 de cada mes de forma idempotente, recuperando tras una caída las no generadas sin duplicar, aislando los errores por cliente y comunicando cada caso particular (sin contacto de facturación, pausado, tarifa nueva, baja efectiva, condiciones a 30 días, descuento caducado) a quien pueda resolverlo. |  |
+| GEN-01 | El sistema deberá generar automáticamente las facturas recurrentes el día 1 de cada mes de forma idempotente, recuperando tras una caída las no generadas sin duplicar, aislando los errores por cliente y comunicando cada caso particular (sin contacto de facturación, pausado, tarifa nueva, baja efectiva, condiciones a 30 días, descuento caducado) a quien pueda resolverlo. | Relacionado con URU-08 |
 
 #### 7. PDF
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| PDF-01 | El sistema deberá generar el PDF desde los datos existentes con identidad corporativa, datos fiscales, numeración, líneas, impuestos, totales, condiciones de pago y contacto de soporte, y conservar el PDF emitido, o poder reproducirlo igual, tras cambios de logo o plantilla. |  |
+| PDF-01 | El sistema deberá generar el PDF desde los datos existentes con identidad corporativa, datos fiscales, numeración, líneas, impuestos, totales, condiciones de pago y contacto de soporte, y conservar el PDF emitido, o poder reproducirlo igual, tras cambios de logo o plantilla. | Relacionado con RNDF-02 |
 
 #### 8. Envío y entrega
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| ENV-01 | El sistema deberá enviar automáticamente las facturas, por defecto por correo al contacto de facturación, con WhatsApp simulado como canal complementario y consentimiento registrado por canal, usando plantillas editables con variables en español e inglés según cliente o contacto. |  |
-| ENV-02 | El sistema deberá registrar de cada envío destinatarios, canal, resultado y fecha, distinguiendo el original de los reintentos, permitir reintentar sin duplicar la factura y mostrar el estado de los mensajes (en cola, enviado, entregado, fallido, reintentado) sin inventar la lectura. |  |
-| ENV-03 | El sistema deberá gestionar el rebote de un correo: no marcar la factura como notificada, avisar al responsable, abrir una incidencia y permitir corregir el contacto y reenviar. |  |
+| ENV-01 | El sistema deberá enviar automáticamente las facturas, por defecto por correo al contacto de facturación, con WhatsApp simulado como canal complementario y consentimiento registrado por canal, usando plantillas editables con variables en español e inglés según cliente o contacto. | Relacionado con URU-08 |
+| ENV-02 | El sistema deberá registrar de cada envío destinatarios, canal, resultado y fecha, distinguiendo el original de los reintentos, permitir reintentar sin duplicar la factura y mostrar el estado de los mensajes (en cola, enviado, fallido, reintentado) sin inventar la lectura. | Relacionado con URA-11 |
+| ENV-03 | El sistema deberá gestionar el rebote de un correo: no marcar la factura como notificada, avisar al responsable, abrir una incidencia y permitir corregir el contacto y reenviar. | Relacionado con URS-06 |
 
 #### 9. Recordatorios, impagos y disputas
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| REC-01 | El sistema deberá enviar, tras la factura, un recordatorio hacia el día 3, otro al vencimiento (5 días por defecto) y avisos de impago cada 2-3 días hasta el pago o la intervención de una persona, con plazos configurables por el SA, prevaleciendo el vencimiento pactado con el cliente y trasladando al siguiente día laborable los avisos que caigan en festivo. |  |
-| REC-02 | El sistema deberá permitir suspender los recordatorios de una factura (disputa) con motivo y fecha de revisión, manteniéndola visible como no cobrada, y cancelar o declarar incobrable una deuda sólo mediante acción controlada, con motivo y aprobación. |  |
+| REC-01 | El sistema deberá enviar, tras la factura, un recordatorio hacia el día 3, otro al vencimiento (5 días por defecto) y avisos de impago cada 2-3 días hasta el pago o la intervención de una persona, con plazos configurables por el SA, prevaleciendo el vencimiento pactado con el cliente y trasladando al siguiente día laborable los avisos que caigan en festivo. | Relacionado con URA-10 |
+| REC-02 | El sistema deberá permitir suspender los recordatorios de una factura (disputa) con motivo y fecha de revisión, manteniéndola visible como no cobrada, y cancelar o declarar incobrable una deuda sólo mediante acción controlada, con motivo y aprobación. | Relacionado con URS-07 |
 
 #### 10. Pagos y conciliación
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| PAG-01 | El sistema deberá incluir una integración Stripe simulada que permita consultar pagos y recibir notificaciones, sin contabilizar dos veces un evento duplicado. |  |
-| PAG-02 | El sistema deberá modelar la conciliación con independencia de la fuente (Stripe, Revolut, banco), con importe, fecha, moneda, concepto y referencia, conciliando automáticamente según la política cuando la coincidencia sea clara, pasando a conciliación manual los casos dudosos o sin referencia y, si el importe difiere del debido, sin marcar la factura como pagada y señalando la diferencia. |  |
-| PAG-03 | El sistema deberá permitir deshacer una conciliación conservando la traza (quién o qué regla la hizo, quién la revirtió y por qué) y mostrar, para cada factura pagada, el movimiento que la justifica. |  |
+| PAG-01 | El sistema deberá incluir una integración Stripe simulada que permita consultar pagos y recibir notificaciones, sin contabilizar dos veces un evento duplicado. | Relacionado con RNDF-01 |
+| PAG-02 | El sistema deberá modelar la conciliación con independencia de la fuente (Stripe, Revolut, banco), con importe, fecha, moneda, concepto y referencia, conciliando automáticamente según la política cuando la coincidencia sea clara, pasando a conciliación manual los casos dudosos o sin referencia y, si el importe difiere del debido, sin marcar la factura como pagada y señalando la diferencia. | Relacionado con URA-15 |
+| PAG-03 | El sistema deberá permitir deshacer una conciliación conservando la traza (quién o qué regla la hizo, quién la revirtió y por qué) y mostrar, para cada factura pagada, el movimiento que la justifica. | Relacionado con URS-07 |
 
 #### 11. Notificaciones e incidencias
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| NOT-01 | El sistema deberá notificar al responsable del cliente los eventos relevantes (pago, vencimiento, rebote, disputa, revisión anual, aprobación rechazada), con bandeja global para el AD y propia para el UO, estados leída y atendida con prioridades, canal configurable por el SA y reglas de alerta configurables sobre un conjunto cerrado de condiciones. |  |
-| NOT-02 | El sistema deberá permitir incidencias de facturación sobre un cliente (y opcionalmente una factura) con responsable, estado, prioridad, resolución y posibilidad de pausar recordatorios, además de comentarios internos con menciones y dos niveles de visibilidad y adjuntos con tipo y descripción, con acceso según los permisos del cliente o la factura. |  |
+| NOT-01 | El sistema deberá notificar al responsable del cliente los eventos relevantes (pago, vencimiento, rebote, disputa, revisión anual, aprobación rechazada), con bandeja global para el AD y propia para el UO, estados leída y atendida con prioridades, canal configurable por el SA y reglas de alerta configurables sobre un conjunto cerrado de condiciones. | Relacionado con URU-08 |
+| NOT-02 | El sistema deberá permitir incidencias de facturación sobre un cliente (y opcionalmente una factura) con responsable, estado, prioridad, resolución y posibilidad de pausar recordatorios, además de comentarios internos con menciones y dos niveles de visibilidad y adjuntos con tipo y descripción, con acceso según los permisos del cliente o la factura. | Relacionado con URS-06 |
 
 #### 12. Trabajo diario, dashboard, informes y búsqueda
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| DAS-01 | El sistema deberá ofrecer una pantalla de trabajo diario con vencimientos, pagos por conciliar, problemas de entrega, aprobaciones, revisiones anuales y tareas asignadas, con acceso directo al elemento. |  |
-| DAS-02 | El sistema deberá ofrecer a los administradores un dashboard financiero (facturado, cobrado, pendiente, vencido, tiempo medio de cobro, mayores deudas, recurrente esperado, previsión simple) con acceso al detalle de cada cifra. |  |
-| INF-01 | El sistema deberá permitir informes filtrables por periodo, cliente, responsable, país, sector, estado, tipo y moneda, exportables a CSV y PDF respetando los permisos del usuario, registrando fecha, filtros y usuario, auditando las exportaciones masivas y permitiendo informes programados y un paquete periódico para la gestoría. |  |
-| BUS-01 | El sistema deberá ofrecer búsqueda global por nombre comercial, razón social, identificador fiscal, contacto, número de factura y correo, con filtros, vistas guardadas, favoritos y recientes, sin usarlos como mecanismo de autorización. |  |
+| DAS-01 | El sistema deberá ofrecer una pantalla de trabajo diario con vencimientos, pagos por conciliar, problemas de entrega, aprobaciones, revisiones anuales y tareas asignadas, con acceso directo al elemento. | Relacionado con RNDF-06 |
+| DAS-02 | El sistema deberá ofrecer a los administradores un dashboard financiero (facturado, cobrado, pendiente, vencido, tiempo medio de cobro, mayores deudas, recurrente esperado, previsión simple) con acceso al detalle de cada cifra. | Relacionado con URS-04 |
+| INF-01 | El sistema deberá permitir informes filtrables por periodo, cliente, responsable, país, sector, estado, tipo y moneda, exportables a CSV y PDF respetando los permisos del usuario, registrando fecha, filtros y usuario, auditando las exportaciones masivas y permitiendo informes programados y un paquete periódico para la gestoría. | Relacionado con URU-06 |
+| BUS-01 | El sistema deberá ofrecer búsqueda global por nombre comercial, razón social, identificador fiscal, contacto, número de factura y correo, con filtros, vistas guardadas, favoritos y recientes, sin usarlos como mecanismo de autorización. | Relacionado con URS-03 |
 
 #### 13. Importación
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| IMP-01 | El sistema deberá importar clientes desde CSV con vista previa, mapeo de columnas, errores y aviso de duplicados, registrando cada importación como operación con resumen de creados, actualizados y rechazados. |  |
+| IMP-01 | El sistema deberá importar clientes desde CSV con vista previa, mapeo de columnas, errores y aviso de duplicados, registrando cada importación como operación con resumen de creados, actualizados y rechazados. | Relacionado con RG-06 |
 
 #### 14. Usuarios, roles y accesos
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| USU-01 | El sistema deberá autenticar con correo del dominio autorizado y contraseña, sin autorregistro, con altas por el SA o un AD con permiso, recuperación de contraseña con enlace caducable, cierre de sesión por inactividad, protección frente a intentos fallidos repetidos y desactivación de usuarios conservando sus acciones e invalidando sus sesiones. |  |
-| USU-02 | El sistema deberá prever tres perfiles (SA, AD, UO) con un modelo de autorización centralizado, donde el UO opera sobre sus clientes asignados sin poder asignárselos, cambiar tarifas globales, crear series ni ver el dashboard global. |  |
-| USU-03 | El sistema deberá permitir al AD asignar y desasignar clientes, heredando el nuevo responsable las tareas pendientes y conservando el histórico su autor original, y permitir delegaciones temporales con caducidad automática. |  |
-| USU-04 | El sistema deberá rechazar en el servidor el acceso a documentos y URL no autorizados. |  |
+| USU-01 | El sistema deberá autenticar con correo del dominio autorizado y contraseña, sin autorregistro, con altas por el SA o un AD con permiso, recuperación de contraseña con enlace caducable, cierre de sesión por inactividad, protección frente a intentos fallidos repetidos y desactivación de usuarios conservando sus acciones e invalidando sus sesiones. | Relacionado con RG-01 |
+| USU-02 | El sistema deberá prever tres perfiles (SA, AD, UO) con un modelo de autorización centralizado, donde el UO opera sobre sus clientes asignados sin poder asignárselos, cambiar tarifas globales, crear series ni ver el dashboard global. | Relacionado con RG-04 |
+| USU-03 | El sistema deberá permitir al AD asignar y desasignar clientes, heredando el nuevo responsable las tareas pendientes y conservando el histórico su autor original, y permitir delegaciones temporales con caducidad automática. | Relacionado con URA-05 |
+| USU-04 | El sistema deberá rechazar en el servidor el acceso a documentos y URL no autorizados. | Relacionado con RG-01 |
 
 #### 15. Auditoría y configuración
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| AUD-01 | El sistema deberá registrar en una auditoría no editable las acciones clave (alta de cliente, datos fiscales, emisión, vencimientos, aprobaciones, reasignaciones, disputas, conciliaciones manuales, configuración), consultable y filtrable por el SA. |  |
-| CFG-01 | El sistema deberá separar la configuración global (plazos, dominio, datos fiscales del emisor, logo, series, monedas, impuestos, umbrales, canales) de los datos operativos, sin fijar los datos del emisor en el código, validando y auditando los cambios sin reescribir documentos ya emitidos y permitiendo simular las automatizaciones antes de activarlas. |  |
+| AUD-01 | El sistema deberá registrar en una auditoría no editable las acciones clave (alta de cliente, datos fiscales, emisión, vencimientos, aprobaciones, reasignaciones, disputas, conciliaciones manuales, configuración), consultable y filtrable por el SA. | Relacionado con RG-06 |
+| CFG-01 | El sistema deberá separar la configuración global (plazos, dominio, datos fiscales del emisor, logo, series, monedas, impuestos, umbrales, canales) de los datos operativos, sin fijar los datos del emisor en el código, validando y auditando los cambios sin reescribir documentos ya emitidos y permitiendo simular las automatizaciones antes de activarlas. | Relacionado con RG-07 |
 
 #### 16. API e integraciones
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| API-01 | El sistema deberá exponer una API documentada, con autenticación separada, permisos, límites y registro, que incluya la consulta de obligaciones pendientes de un cliente y la notificación «cliente solicita baja» (que genera una tarea sin borrar la recurrencia), sin saltarse las reglas de la interfaz y con las integraciones encapsuladas. |  |
+| API-01 | El sistema deberá exponer una API documentada, con autenticación separada, permisos, límites y registro, que incluya la consulta de obligaciones pendientes de un cliente y la notificación «cliente solicita baja» (que genera una tarea sin borrar la recurrencia), sin saltarse las reglas de la interfaz y con las integraciones encapsuladas. | Relacionado con RNDF-05 |
 
 #### 17. Procesos automáticos y operación
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| PRO-01 | El sistema deberá registrar cada ejecución de los procesos automáticos, alertar si una tarea no se ejecuta, ejecutar en segundo plano las operaciones largas con estado persistente y ofrecer una pantalla de salud (última generación recurrente, cola de correos, errores de integración, último backup). |  |
-| PRO-02 | El sistema deberá impedir duplicados por doble clic o recarga en emisión, envío y conciliación, y detectar conflictos de edición concurrente sobre una factura. |  |
-| PRO-03 | El sistema deberá permitir acciones masivas mostrando cuántos elementos afectan, con confirmación si son sensibles y resultado de éxitos y errores, sin «marcar como pagadas» masivo. |  |
-| PRO-04 | El sistema deberá permitir el cierre administrativo de periodos, con reapertura solo con permiso superior y motivo. |  |
-| PRO-05 | El sistema deberá realizar copias de seguridad automáticas de datos y documentos y permitir su restauración. |  |
+| PRO-01 | El sistema deberá registrar cada ejecución de los procesos automáticos, alertar si una tarea no se ejecuta, ejecutar en segundo plano las operaciones largas con estado persistente y ofrecer una pantalla de salud (última generación recurrente, cola de correos, errores de integración, último backup). | Relacionado con URS-06 |
+| PRO-02 | El sistema deberá impedir duplicados por doble clic o recarga en emisión, envío y conciliación, y detectar conflictos de edición concurrente sobre una factura. | Relacionado con URU-08 |
+| PRO-03 | El sistema deberá permitir acciones masivas mostrando cuántos elementos afectan, con confirmación si son sensibles y resultado de éxitos y errores, sin «marcar como pagadas» masivo. | Relacionado con RNDF-02 |
+| PRO-04 | El sistema deberá permitir el cierre administrativo de periodos, con reapertura solo con permiso superior y motivo. | Relacionado con URS-06 |
+| PRO-05 | El sistema deberá realizar copias de seguridad automáticas de datos y documentos y permitir su restauración. | Relacionado con RG-03 |
 
 #### 18. Datos personales
 
 | ID | Requisito | Relacionado con |
 |---|---|---|
-| PRI-01 | El sistema deberá permitir localizar los datos personales de un contacto y anonimizarlos o eliminarlos cuando proceda, conservando el PDF emitido y los datos contables obligatorios. |  |
+| PRI-01 | El sistema deberá permitir localizar los datos personales de un contacto y anonimizarlos o eliminarlos cuando proceda, conservando el PDF emitido y los datos contables obligatorios. | Relacionado con URS-03 |
 
 #### Ampliaciones (fuera del alcance obligatorio)
 
@@ -480,31 +481,28 @@ El cliente presentó como opcionales o futuras estas funciones, que no se incluy
 
 - **AMB-05: Regla de prorrateo.** Interpretación propuesta: se factura por días naturales, contando el día del alta, sobre los días reales del mes (importe mensual × días restantes ÷ días del mes). Un alta el último día del mes factura un día (SUB-03). A confirmar con el cliente.
 
+- **AMB-06: Independencia del sistema vs. Comunicación por API.** En la reunión inicial el cliente pidió que la aplicación no estuviera relacionada con Brain ni con otros módulos; en la reunión ampliada solicitó poder consultar impagos y avisar de bajas desde sistemas externos. Interpretación propuesta: prevalece la reunión ampliada manteniendo el desacoplamiento; no se toca ni integra Brain internamente, sino que se expone una API con los dos endpoints mínimos de consulta de obligaciones pendientes y aviso de solicitud de baja (RNI-06, API-01).
+
+
 ### 4.2. Requisitos no funcionales
 
 En este apartado se recogen aquellos requisitos que no responden tanto a "qué" hace el programa sino a "cómo" lo ejecuta, así como la definición de sus estándares en cuanto a la calidad y el rendimiento además de sus restricciones.
 
 #### 1 - Rendimiento y Mantenibilidad
 
-Forma en la que se comporta la aplicación en respuesta a una cierta carga de trabajo,es decir, qué tan bien un sistema o red puede manejar el procesamiento de datos. Puede medirse en términos de tiempo de respuesta del sistema, utilización de recursos, etc.
-
 | ID | Categoría | Requisito | Criterio verificable |
 |---|---|---|---|
-| RM-01 | Rendimiento y Mantenibilidad | El sistema debe funcionar con fluidez y rapidez sin comprometer cualquier otro aspecto del sistema, como puede ser, la seguridad de los datos. |  |
-| RM-01.1 | Rendimiento y Mantenibilidad |  | Las tareas normales deben poder efectuarse en un minuto. Ej: Generación y consulta de facturas. |
-| RM-01.2 | Rendimiento y Mantenibilidad |  | Las operaciones pesadas se ejecutan en segundo plano. |
-| RM-02 | Rendimiento y Mantenibilidad | En relación con el tema de la auditoría y la revisión humana de modificaciones en el sistema, a pesar de esto, la automatización del sistema no debe ser afectada. |  |
-| RM-02.1 | Rendimiento y Mantenibilidad | No todo necesita una revisión, habrá cosas que el sistema podrá permitir directamente. |  |
-| RM-03 | Rendimiento y Mantenibilidad | Hablando de las autorizaciones que se dan entre los diferentes roles del sistema, el código que lo maneje debe seguir un modelo coherente. Es decir, el sistema debe estar diseñado de manera que su rendimiento no se vea comprometido. |  |
+| RM-01 | Rendimiento y Mantenibilidad | El sistema debe funcionar con fluidez y rapidez sin comprometer cualquier otro aspecto del sistema, como puede ser, la seguridad de los datos. | |
+| RM-01.1 | Rendimiento y Mantenibilidad | | Las tareas normales deben poder efectuarse en un minuto. Ej: Generación y consulta de facturas. |
+| RM-01.2 | Rendimiento y Mantenibilidad | | Las operaciones pesadas se ejecutan en segundo plano. |
+| RM-02 | Rendimiento y Mantenibilidad | En relación con el tema de la auditoría y la revisión humana de modificaciones en el sistema, a pesar de esto, la automatización del sistema no debe ser afectada. | |
+| RM-02.1 | Rendimiento y Mantenibilidad | No todo necesita una revisión, habrá cosas que el sistema podrá permitir directamente. | |
+| RM-03 | Rendimiento y Mantenibilidad | Hablando de las autorizaciones que se dan entre los diferentes roles del sistema, el código que lo maneje debe seguir un modelo coherente. Es decir, el sistema debe estar diseñado de manera que su rendimiento no se vea comprometido. | |
 | RM-04 | Rendimiento y Mantenibilidad | Búsquedas eficientes según la carga del sistema. | Las búsquedas se resolverán por debajo de los 10 segundos para cargas grandes de trabajo. En circunstancias normales, serán prácticamente inmediatas. |
-| RM-05 | Rendimiento y Mantenibilidad | El sistema no conservará para siempre lo generado. Al fin y al cabo, lo contrario puede llenar/saturar el servidor y se busca la eficiencia de los recursos. | ciertos generables sólo se mantendrán en el servidor un tiempo configurable, dependiendo de las circunstancias. |
-| RM-06 | Rendimiento y Mantenibilidad | El sistema debe poder evolucionar sin problemas ante cualquier cambio. |  |
+| RM-05 | Rendimiento y Mantenibilidad | El sistema no conservará para siempre lo generado. Al fin y al cabo, lo contrario puede llenar/saturar el servidor y se busca la eficiencia de los recursos. | Ciertos generables sólo se mantendrán en el servidor un tiempo configurable, dependiendo de las circunstancias. |
+| RM-06 | Rendimiento y Mantenibilidad | El sistema debe poder evolucionar sin problemas ante cualquier cambio. | |
 
 #### 2 - Portabilidad y Escalabilidad
-
-Entendemos como portabilidad la propiedad que posee un software que le permite ser ejecutado en diferentes plataformas y/o sistemas operativos. También puede entenderse en términos de compatibilidad.
-
-La escalabilidad, por otra parte, se refiere a la capacidad de un sistema de gestionar cambios en la carga de trabajo. La preocupación principal radica en qué puede sucederle al sistema si este comienza a recibir una carga de trabajo importante, puesto que su rendimiento puede verse afectado hasta tal punto de colapsar. Así, un sistema escalable es capaz de mantener dicho rendimiento a pesar de las altas cargas de trabajo.
 
 | ID | Categoría | Requisito | Criterio verificable |
 |---|---|---|---|
@@ -516,8 +514,6 @@ La escalabilidad, por otra parte, se refiere a la capacidad de un sistema de ges
 | PE-06 | Portabilidad y Escalabilidad | El código y arquitectura debe de poder ser visionable en distintos equipos. | Los entornos de trabajo y despliegue son multiplataforma. |
 
 #### 3 - Accesibilidad y adaptación
-
-La accesibilidad puede considerarse uno de los puntos más importantes a la hora de desarrollar cualquier tipo de software. Al fin y al cabo, de él no se espera simplemente que funcione, sino que debe ser usable por cualquier usuario e incluso adaptarse a sus necesidades.
 
 | ID | Categoría | Requisito | Criterio verificable |
 |---|---|---|---|
@@ -534,59 +530,51 @@ La accesibilidad puede considerarse uno de los puntos más importantes a la hora
 
 #### 4 - Integridad y trazabilidad
 
-La integridad de los datos nos asegura que estos son precisos, completos y coherentes en cualquier momento de su ciclo de vida. Mantener la integridad de los datos implica protegerlos contra pérdidas, filtraciones o corrupciones.
-
-La trazabilidad, por su parte, responde a la propiedad que nos permite "seguir" el camino "trazan" los datos por el sistema. Un sistema trazable nos permite tener un mayor control y vigilancia sobre este.
-
 | ID | Categoría | Requisito | Criterio verificable |
 |---|---|---|---|
 | INT-01 | Integridad y trazabilidad | Debe asegurar en todo momento la precisión de los datos, evitando así cualquier discrepancia entre la plataforma y registros de cobro externos (Stripe). | Tras cada conciliación, el estado de pago de la factura coincide con el movimiento que lo justifica. |
 | INT-01.1 | Integridad y trazabilidad | El sistema estará conectado a ciertas fuentes de datos que nos permitan asegurar de primera mano si los cobros han sido efectuados o no (cuenta bancaria de la empresa). | El sistema consulta el estado de cobro contra la fuente configurada. |
-| INT-01.2 | Integridad y trazabilidad | Con motivo de asegurar la integridad y seguridad de los datos, el sistema deberá avisar de posibles revisiones así como recopilar o permitir introducir la facturación anual verificada. |  |
+| INT-01.2 | Integridad y trazabilidad | Con motivo de asegurar la integridad y seguridad de los datos, el sistema deberá avisar de posibles revisiones así como recopilar o permitir introducir la facturación anual verificada. | |
 | INT-02 | Integridad y trazabilidad | Todo movimiento dentro del sistema es registrado y monitoreado (tanto por parte del cliente como de los propios administradores). Esto incluye: | Para las acciones clave se puede saber quién, cuándo y qué cambió. |
 | INT-02.1 | Integridad y trazabilidad | Cualquier modificación de ficheros o facturas efectuadas | Toda modificación queda registrada con usuario, fecha y valor anterior y nuevo. |
-| INT-02.2 | Integridad y trazabilidad | Historiales (búsqueda, interacción, etc.) |  |
+| INT-02.2 | Integridad y trazabilidad | Historiales (búsqueda, interacción, etc.) | |
 | INT-02.3 | Integridad y trazabilidad | Cuando se envía una factura, queda constancia de a qué destinatarios se envió. | Por cada envío de factura se guarda destinatario, fecha, canal y resultado, y no cambia aunque después se modifiquen los datos. |
 | INT-02.4 | Integridad y trazabilidad | Si un usuario deja Turbine, su "rastro" se mantiene en el sistema. | Tras desactivar a un empleado, sus acciones anteriores siguen en el registro atribuidas a su cuenta. |
 | INT-02.5 | Integridad y trazabilidad | Registros de ejecución. | Cada ejecución de un proceso automático registra fecha, elementos procesados y fallos con su motivo correspondiente. |
 | INT-03 | Integridad y trazabilidad | Se realizan copias de seguridad automáticas de los datos y documentos del sistema, siguiendo una política definida. | Existe una política documentada y la última copia correcta es visible en el sistema. |
-| INT-03.1 | Integridad y trazabilidad | Las copias son restaurables. |  |
-| INT-04 | Integridad y trazabilidad | Control y revisión humana de los datos |  |
+| INT-03.1 | Integridad y trazabilidad | Las copias son restaurables. | |
+| INT-04 | Integridad y trazabilidad | Control y revisión humana de los datos | |
 | INT-04.1 | Integridad y trazabilidad | Determinados cambios económicos deben ser aprobados por un administrador. Si el descuento supera un umbral configurado, quizá tenga que aprobarlo el superadministrador. | Determinadas modificaciones de datos en el sistema necesitan aprobación y no se efectúan hasta que la recibe. Todo esto queda registrado en el sistema. |
-| INT-05 | Integridad y trazabilidad | En cuanto a la seguridad de los datos |  |
-| INT-05.1 | Integridad y trazabilidad | Se protegerán los datos de posibles sobreescrituras accidentales. |  |
+| INT-05 | Integridad y trazabilidad | En cuanto a la seguridad de los datos | |
+| INT-05.1 | Integridad y trazabilidad | Se protegerán los datos de posibles sobreescrituras accidentales. | |
 | INT-05.1.1 | Integridad y trazabilidad | Modificaciones en facturas o tarifas actuales no deben afectar a facturas pasadas. | Tras cambiar una tarifa, plantilla o configuración, las facturas ya emitidas conservan su importe y su PDF original. |
 | INT-05.2 | Integridad y trazabilidad | En el caso de que faltara un campo por rellenar en un formulario, los otros ya rellenados no deben perderse, sino que aparecerán marcados aquellos que deben ser rellenados. El sistema actuará de la misma forma si el usuario o trabajador se equivocara en un campo. | Al encontrar un campo erróneo o faltante el sistema conserva los demás datos introducidos y se indica el campo y motivo. |
 | INT-06 | Integridad y trazabilidad | Tras una acción masiva en el sistema se mostrará todo a lo que afecta, pidiendo confirmación cuando sea destructiva y sensible y que sea exitosa. | El sistema muestra a qué afecta una acción masiva antes de confirmar y, al terminar, informa de los éxitos y errores sucedidos. |
-| INT-07 | Integridad y trazabilidad | Con motivo de evitar discrepancias producidas por los cambios entre franjas horarias, se usará la fecha de negocio que corresponda para las fechas legales de factura, no solo la hora del servidor. |  |
+| INT-07 | Integridad y trazabilidad | Con motivo de evitar discrepancias producidas por los cambios entre franjas horarias, se usará la fecha de negocio que corresponda para las fechas legales de factura, no solo la hora del servidor. | |
 | INT-08 | Integridad y trazabilidad | Las tareas automáticas mensuales deben ser reintentables. Esto, con el fin de minimizar daños o incluso superar los obstáculos que nos pueden ocasionar las caídas del sistema. | Si el sistema cae, al recuperarse detecta qué facturas no se generaron y las genera. |
 | INT-08.1 | Integridad y trazabilidad | Continuando con las posibles caídas, evitar duplicados por reintentos o pérdidas de emisión. | Ejecutar dos veces una generación produce el mismo número de facturas (una sola). |
 | INT-08.2 | Integridad y trazabilidad | Asimismo, el sistema debe detectar fallos y recuperarse. | Un cliente con datos incorrectos no impide procesar a otros. |
-| INT-09 | Integridad y trazabilidad | Precisión decimal en los importes. De forma que el manejo de decimales en el código no hagan desaparecer céntimos y se expliquen ciertos redondeos. |  |
-| INT-09.1 | Integridad y trazabilidad | Consecuentemente, todo debe cuadrar. |  |
-| INT-10 | Integridad y trazabilidad | Debe quedar constancia de las consecuencias acarreadas por según qué acciones. |  |
-| INT-11 | Integridad y trazabilidad | La automatización del sistema debe ser confiable, documentando cada evento. |  |
+| INT-09 | Integridad y trazabilidad | Precisión decimal en los importes. De forma que el manejo de decimales en el código no hagan desaparecer céntimos y se expliquen ciertos redondeos. | |
+| INT-09.1 | Integridad y trazabilidad | Consecuentemente, todo debe cuadrar. | |
+| INT-10 | Integridad y trazabilidad | Debe quedar constancia de las consecuencias acarreadas por según qué acciones. | |
+| INT-11 | Integridad y trazabilidad | La automatización del sistema debe ser confiable, documentando cada evento. | |
 
 #### 5 - Independencia
-
-Responde a la capacidad del sistema para operar de manera uniforme independientemente del sistema operativo o del entorno de hardware subyacente. En el contexto de las empresas, esta característica resulta de vital importancia puesto que facilita la integración y gestión de diferentes tecnologías sin depender de un sistema operativo, recursos, etc.
 
 | ID | Categoría | Requisito | Criterio verificable |
 |---|---|---|---|
 | IND-01 | Independencia | El sistema es capaz de funcionar individualmente, sin depender de otros módulos de la empresa, aplicaciones, etc. | La aplicación opera con normalidad con Brain desconectado. |
-| IND-01.1 | Independencia | Esto también afecta a los proveedores, es decir. El sistema no debería verse obligado a reescribir el modelo de factura en el caso de que se cambie de proveedor. |  |
+| IND-01.1 | Independencia | Esto también afecta a los proveedores, es decir. El sistema no debería verse obligado a reescribir el modelo de factura en el caso de que se cambie de proveedor. | |
 
 #### 6 - Seguridad
-
-La misión de la seguridad en el desarrollo software radica en reducir las vulnerabilidades del sistema durante todo su ciclo de vida. Con ello podemos evitar ataques o "fugas" que comprometan la integridad de sus datos.
 
 | ID | Categoría | Requisito | Criterio verificable |
 |---|---|---|---|
 | SEG-01 | Seguridad | Cada usuario (refiriéndonos tanto a clientes como a administradores) tendrá un tiempo límite de sesión si permanece inactivo. Es decir, si permanece inactivo durante demasiado tiempo, su sesión puede caducar y necesitará autenticarse de nuevo. | Tras un periodo de inactividad, la sesión caduca y el sistema exige volver a iniciar sesión. |
 | SEG-02 | Seguridad | Cada usuario solo podrá descargar lo que tenga permiso para ver. | Un usuario sin permiso sobre algún cliente, facturas, etc. es rechazado por el servidor aunque conozca la URL correspondiente. |
-| SEG-03 | Seguridad | Facturas, datos fiscales y contactos no deberían quedar en URLs públicas adivinables. |  |
-| SEG-04 | Seguridad | Los enlaces generados serán temporales, es decir, caducarán. |  |
-| SEG-05 | Seguridad | Las comunicaciones deben ir cifradas. |  |
+| SEG-03 | Seguridad | Facturas, datos fiscales y contactos no deberían quedar en URLs públicas adivinables. | |
+| SEG-04 | Seguridad | Los enlaces generados serán temporales, es decir, caducarán. | |
+| SEG-05 | Seguridad | Las comunicaciones deben ir cifradas. | |
 | SEG-06 | Seguridad | Las contraseñas no se guardan en texto plano. | Las contraseñas no aparecen en claro en la base de datos ni en los registros. |
 | SEG-07 | Seguridad | La exportación debe respetar los permisos del usuario, es decir, cada usuario solo podrá exportar aquello a lo que tenga acceso y pueda ver. | Un usuario al exportar sus clientes solo es capaz de hacerlo con los clientes que le han sido asignados. |
 | SEG-08 | Seguridad | Las delegaciones temporales de cargos, clientes ,etc. deben caducar, para así evitar la compartición de contraseñas. | Cuando llega la fecha límite, la delegación caduca, el usuario correspondiente pierde el acceso. |
@@ -594,22 +582,14 @@ La misión de la seguridad en el desarrollo software radica en reducir las vulne
 
 #### 7- Legislación
 
-Este apartado se centra en las restricciones legales con las que el sistema puede encontrarse.
-
 | ID | Categoría | Requisito | Criterio verificable |
 |---|---|---|---|
 | LEG-01 | Legislación | Los datos de usuario se mantendrán en el sistema el tiempo que permita la ley (Conservación). | Al darse de baja un cliente, sus datos no se eliminan hasta cumplirse el plazo correspondiente. |
 | LEG-02 | Legislación | Se mantendrá un histórico y estado de cada cliente (hablando de el borrado de estos) sujeto a lo que permita la ley (Minimización). | Al modificar un cliente, incluso en su borrado, el sistema mantiene ciertos datos como sus facturas emitidas. |
-| LEG-03 | Legislación | Las copias de seguridad también se ven sujetas a restricciones legales, ya sea por tiempo, el tipo de datos que puede almacenar, etc. |  |
+| LEG-03 | Legislación | Las copias de seguridad también se ven sujetas a restricciones legales, ya sea por tiempo, el tipo de datos que puede almacenar, etc. | |
 
 
 ## 5. Reglas de negocio
-
-En este apartado se tratarán aquellas reglas/cuestiones del dominio/organización que condicionan el comportamiento del sistema.
-
-Los siguientes puntos no representan por sí mismos una funcionalidad, simplemente son eso, puntos que la propia empresa nos pide que tengamos en cuenta.
-
-Como aclaración, realmente la línea de división entre lo que entendemos como "requisito" (de cualquier tipo, aunque afecta más a los funcionales y no funcionales) y "regla de negocio" en ocasiones puede ser ambigua. Por lo mismo, en este apartado es posible que aparezcan ideas, puntos o temas ya mencionados anteriormente, pero con una ligera diferencia: aquí se tratarán como los deseos del cliente y en otros puntos, más bien, como el propio comportamiento del sistema y cómo este debe asegurarlos.
 
 ### 5.1 Facturación
 
@@ -622,7 +602,7 @@ Como aclaración, realmente la línea de división entre lo que entendemos como 
 | RB-04 | No existen las facturas simplificadas, cada factura debe ser igual a la otra, al menos, en formato. |
 | RB-05 | Existen distintos tipos de facturas |
 | RB-05.1 | Las facturas recurrentes, por lo general, son mensuales, emitiéndose el día uno de cada mes. Una factura con otra fecha es puntual, no sigue el estándar. |
-| RB-05.1.1 | En caso de que un cliente se dé de alta en días intermedios del mes, se genera una factura proporcional en relación a los días restantes del mes, volviendo a la normalidad a partir del mes siguiente. |
+| RB-05.1.1 | En caso de que un cliente se dé de alta en días intermedios del mes, se genera una factura proporcional por los días naturales reales restantes del mes (incluyendo el día de alta: importe mensual × días restantes ÷ días reales del mes; si entra el último día del mes, se factura un día), volviendo a la normalidad a partir del mes siguiente. |
 | RB-05.1.2 | También puede darse el caso de que un cliente no empiece a facturar hasta el mes siguiente o, en general, en fechas futuras. Hasta esa fecha, no se emiten facturas ni recordatorios de cobro. |
 | RB-05.2 | Las facturas puntuales no tienen rango de precios |
 | RB-06 | Si el vencimiento de una factura (o notificación) cae en un día no laborable (fines de semanas o festivos), las comunicaciones se moverán al siguiente día laborable según la configuración del calendario. |
@@ -634,11 +614,12 @@ Como aclaración, realmente la línea de división entre lo que entendemos como 
 | RB-07 | La aplicación es independiente de uno de los productos de la empresa, Brain, y de su interfaz. Se trata de una aplicación de uso interno y gestión de la organización. |
 | RB-07.1 | Así mismo, para su uso no se permiten correos personales ni de terceros, sólo pertenecientes a Turbine. |
 | RB-07.2 | Tampoco implementa servicios fiscales como Verifactu ni deduce la legislación de cada país, puesto que de eso se encarga la propia gestoría de Turbine. |
+| RB-07.3 | Esta independencia respecto a Brain y otros módulos internos no impide que dichos sistemas se comuniquen de forma desacoplada con la aplicación mediante una API restringida únicamente a consultar obligaciones pendientes y notificar solicitudes de baja. |
 | RB-08 | El cliente no espera una pasarela de pago, puesto que ese tema lo gestiona la pasarela de la propia empresa, es decir, fuera del sistema solicitado. El deber del sistema es íntegramente el de la gestión de la facturación de la empresa. |
 | RB-09 | El sistema no tiene chat propio ni general. Sí es posible que tenga algún tipo de conexión con terceros (ej: Whatsapp, e-mail). |
 | RB-09.1 | Por defecto, el envío es por correo. |
 | RB-09.2 | En la práctica, los servicios externos pueden simularse. |
-| RB-10 | Las bajas se gestionan fuera de la aplicación, el sistema simplemente las registra e informa sobre posibles deudas. |
+| RB-10 | La solicitud de baja de un cliente puede originarse fuera de la aplicación y notificarse al sistema mediante la API (además de poder tramitarse internamente). Al recibir este aviso externo, el sistema no borra ni desactiva la recurrencia automáticamente, sino que genera una tarea para el responsable del cliente; asimismo, permite que otros sistemas de la empresa consulten por API si el cliente tiene facturas pendientes. |
 | RB-11 | Puede proporcionarse un catálogo, algo ligero. |
 | RB-12 | El sistema estará preparado para una posible extensión, puesto que, aunque actualmente funcione en una sola entidad, es posible que en un futuro opere con varias. |
 
@@ -693,34 +674,24 @@ Como aclaración, realmente la línea de división entre lo que entendemos como 
 
 ## 6. Suposiciones y decisiones de análisis
 
-En esta sección se documentarán las decisiones tomadas por el equipo cuando la
-información proporcionada por el cliente no sea suficiente para determinar unívocamente
-un requisito.
-
-| ID   | Suposición o decisión                                                                                                 | Justificación                                                                                                                  | Requisitos afectados |
-|------|-----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|----------------------|
-| A-01 | El "Superadministrador" se considera un tercer rol independiente.                                                     | Aunque su diferencia con el administrador normal es pequeña, separarlo facilita su gestión e identificación en el sistema.     | [Añadir FR]          |
-| A-02 | Los clientes finales no interactúan con la plataforma; las altas y bajas las realizan exclusivamente los empleados.   | El sistema está pensado para uso interno y solo permite registrar facturas de empresas reales gestionadas por los trabajadores.| [Añadir FR]          |
-| A-03 | Las facturas emitidas no se pueden modificar ni borrar directamente; deben ser rectificadas.                          | Eliminar facturas dejaría un hueco debido a la obligación de mantener una numeración correlativa (AMB-01, FAC-03).             | [Añadir FR]          |
-| A-04 | La baja de un cliente que tenga deuda pendiente se hace efectiva en el servicio, pero el proceso de recobro continúa. | Permite cancelar la prestación del servicio sin detener la gestión de los impagos activos (AMB-04).                            | [Añadir FR]          |
-| A-05 | El sistema solo informa de los pagos al usuario y al administrador, no confirma directamente al cliente.              | La confirmación oficial del pago al cliente la emite la plataforma de pagos externa al recibir los fondos.                     | [Añadir FR]          |
-| A-06 | No existe un proceso de registro público para usuarios; solo mecanismo de login.                                      | El cliente especificó que él mismo introduce los usuarios en el sistema, asumiendo un alta inicial interna.                    | [Añadir FR]          |
-| A-07 | La integración de una API se contempla explícitamente como un caso de uso (API-01).                                   | Cubre la necesidad de negocio de evolucionar e integrarse con otros sistemas en el futuro.                                     | API-01, [Añadir FR]  |
+| ID | Suposición o decisión | Justificación | Requisitos afectados |
+|---|---|---|---|
+| A-01 | El "Superadministrador" se considera un tercer rol independiente. | Aunque comparte base operativa con el administrador, separarlo facilita su gestión, autorización e identificación en el sistema. | USU-01, USU-02, CFG-01, AUD-01, TAR-01, APR-01 |
+| A-02 | Los clientes finales no interactúan con la plataforma; las altas y bajas las realizan exclusivamente los empleados. | El sistema está pensado para uso interno y solo permite gestionar empresas reales administradas por los trabajadores de Turbine. | CLI-01, CLI-04, SUB-04, USU-01 |
+| A-03 | Las facturas emitidas no se pueden modificar ni borrar directamente; deben ser rectificadas. | Eliminar o editar facturas emitidas dejaría huecos en la numeración correlativa de la serie y rompería la trazabilidad legal (AMB-01). | FAC-02, FAC-03, FAC-04, FAC-06, PRO-04 |
+| A-04 | La baja de un cliente que tenga deuda pendiente se hace efectiva en el servicio, pero el proceso de recobro continúa. | Permite cancelar la prestación del servicio sin detener la gestión de los impagos activos (AMB-04). | SUB-04, CLI-03, REC-01, API-01 |
+| A-05 | El sistema solo informa de los pagos al usuario y al administrador, no confirma directamente al cliente. | La confirmación oficial del pago al cliente la emite la plataforma de pagos externa al recibir los fondos. | PAG-01, PAG-02, NOT-01, REC-01 |
+| A-06 | No existe un proceso de registro público para usuarios; solo mecanismo de login e invitación interna. | El cliente especificó que solo se accede con correo corporativo de Turbine dado de alta por un administrador o superadministrador. | USU-01 |
+| A-07 | La integración de una API se contempla explícitamente en el alcance mínimo para consulta de deuda y aviso de solicitud de baja. | Cubre la necesidad expuesta en ambas reuniones de comunicar las bajas externas y el estado de deuda sin acoplar el sistema a Brain. | API-01, SUB-04 |
+| A-08 | El prorrateo del primer mes se calcula por días naturales reales del mes, incluyendo el día de alta (`importe × días restantes / días del mes`). | Evita errores por asumir meses de 30 días y resuelve el alta en el último día del mes facturando exactamente un día (AMB-05). | SUB-03 |
 
 
 ## 7. Dudas, ambigüedades y cuestiones pendientes
 
-Se incluirán aquí aspectos de la información proporcionada por el cliente que sean
-ambiguos, incompletos, contradictorios o que requieran aclaración.
-
-Notas sobre las fuentes: las referencias (P0xx) corresponden a los bloques de la transcripción de la
-primera reunión (sesión del 29 de septiembre de 2026). La transcripción de la reunión ampliada no tiene
-bloques numerados, por lo que se cita como "Reunión ampliada, pág. N".
-
 | ID | Cuestión | Origen | Impacto | Estado / resolución |
-|----|----------|--------|---------|---------------------|
+|---|---|---|---|---|
 | Q-01 | ¿El superadministrador es un tercer rol o un administrador con un permiso extra? En las notas de requisitos "al principio no se tendrá en cuenta", pero hay funciones que solo puede realizar él (configuración profunda). | Entrevista (P144, P149, P151, P208) / notas de requisitos; Reunión ampliada, pág. 7 | Roles y permisos de usuario; configuración del sistema | Resuelta: se considera un tercer rol independiente (ver A-01). En la primera reunión el cliente dijo que debía existir alguien con poder de configuración más profunda y que lo dejaba para pensar durante la asignatura (P149, P151). La reunión ampliada lo confirma: configuración profunda para el superadministrador, operación para los administradores y trabajo sobre lo asignado para los usuarios operativos. |
-| Q-02 | Baja de cliente: el cliente dice en un momento que él mismo cambia el estado del cliente en la aplicación (P123) y en otro que la baja se hace en otro sitio y solo nos consultan (P202, P203). ¿Se hacen las dos cosas? | Entrevista (P098, P123, P202, P203); Reunión ampliada, pág. 4 | Alta y baja de clientes; fin de la facturación recurrente | Resuelta en parte: en la reunión ampliada el cliente aclara que la baja del producto ocurre fuera, y que esta aplicación debe recibir o registrar la solicitud y consultar si hay deuda. La baja efectiva en facturación se registra en la aplicación (ver A-04). Falta decidir quién la registra cuando no llega por API (ver Q-11). |
+| Q-02 | Baja de cliente: el cliente dice en un momento que él mismo cambia el estado del cliente en la aplicación (P123) y en otro que la baja se hace en otro sitio y solo nos consultan (P202, P203). ¿Se hacen las dos cosas? | Entrevista (P098, P123, P202, P203); Reunión ampliada, pág. 4 | Alta y baja de clientes; fin de la facturación recurrente | Resuelta: la baja del producto ocurre fuera de la plataforma. Esta aplicación permite consultar la deuda y recibir el aviso de solicitud de baja por API (generando una tarea interna, CU-31), y un empleado autorizado registra la baja efectiva en facturación (CU-07), deteniendo las recurrentes y manteniendo el recobro pendiente (ver A-04 y A-07). |
 | Q-03 | A la pregunta "¿la aplicación quiere tener la posibilidad de crear un cliente o no?" el cliente respondió "No" (P209), lo que choca con el resto de la información. Probablemente entendió otra pregunta. | Entrevista (P141, P209) | Registro de clientes | Resuelta por interpretación del equipo: se entiende que no se contemplan simulaciones, solo el registro de facturas de empresas reales. En P141 el cliente confirma que solo su empresa registra clientes y que un cliente no puede registrarse a sí mismo (ver A-02), y la reunión ampliada (págs. 1-2) describe el alta de clientes como función normal de la aplicación. Conviene confirmarlo con el cliente. |
 | Q-04 | Facturas ya emitidas: ¿hasta cuándo pueden modificarse? En la primera reunión el cliente dijo que debería poder modificarlas siempre, pero que se va por trimestres: una factura de marzo ya no se puede tocar el 1 de abril (P083-P085). Dentro del grupo había dos lecturas: modificables hasta fin de trimestre o hasta el pago, o solo rectificables. | Notas de requisitos / Entrevista (P083, P084, P085); Reunión ampliada, págs. 3 y 12 | Modificación y rectificación de facturas; cierre de periodos | Resuelta: en la reunión ampliada el cliente aclara que antes de emitir la factura se puede corregir; después de emitirla, todo cambio relevante debe ser trazable y se hace mediante rectificativa. El cierre de trimestre pasa a ser el cierre administrativo de periodo (CU-29), que impide cambios ordinarios. Se mantiene A-03. Hay que retirar del grupo la lectura "modificable hasta fin de trimestre o pago" y la frase "Modificar factura mientras esté permitido". |
 | Q-05 | Borrar facturas: el cliente habló de "CRUD" (P149), pero con numeración correlativa borrar una factura deja un hueco. ¿Se borran o se anulan? Nota: en P149 el CRUD se refiere a lo que puede hacer el usuario operativo sobre lo que tiene asignado, no a las facturas en concreto. | Entrevista (P149); Reunión ampliada, pág. 3 | Gestión de facturas | Resuelta: no se borran las facturas emitidas (ver A-03). Solo pueden eliminarse borradores nunca emitidos, dejando traza si procede (confirmado por el cliente en la reunión ampliada). La numeración correlativa también aparece en el material mostrado (P218). |
@@ -729,20 +700,16 @@ bloques numerados, por lo que se cita como "Reunión ampliada, pág. N".
 | Q-08 | Periodos del panel: primero el cliente dijo semanal, mensual y anual (P104); después semanal, mensual y trimestral (P130). | Entrevista (P104, P130); Reunión ampliada, pág. 6 | Dashboard financiero | Resuelta: en la reunión ampliada el cliente enumera semana, mes, trimestre y año. Se ofrecen los cuatro periodos. |
 | Q-09 | Canal de avisos: el cliente dijo "e-mail o WhatsApp la mejor opción posible" (P101). ¿Email, WhatsApp o ambos? | Entrevista (P101); Reunión ampliada, págs. 4-5 | Envío de facturas y avisos | Resuelta: el correo electrónico al contacto de facturación es el canal por defecto. WhatsApp es un canal complementario simulado, y solo si hay consentimiento del contacto. |
 | Q-10 | "Darse de alta": las notas de requisitos dicen que el usuario se da de alta con su email, pero el cliente indicó que solo hay login y que los usuarios los introduce él (P118). | Notas de requisitos / Entrevista (P118, P125, P138, P141); Reunión ampliada, pág. 6 | Acceso y gestión de usuarios | Resuelta: no hay autorregistro. El login es con email de dominio de Turbine y contraseña (P138, P139), y los usuarios los introduce el cliente (P118). El superadministrador o un administrador con permiso crea o invita a los usuarios (ver A-06). |
-| Q-11 | API: el grupo decidió dejarla fuera porque "las bajas se hacen desde la app". Pero ya en la primera reunión el cliente dijo que la aplicación debía tener una API para decir si hay facturas pendientes (P203, P204), que debe quedar documentada (P128) y que dejar la puerta abierta a una API externa es buena práctica (P212). En la reunión ampliada pide documentar una API (consulta de clientes, deuda, facturas) y dos endpoints concretos: consulta de obligaciones pendientes y aviso de "cliente solicita baja" que genera una tarea. Permite implementar solo un subconjunto representativo, con el contrato documentado. | Entrevista (P127, P128, P129, P203, P204, P212); Reunión ampliada, págs. 4 y 10 | Integración externa por API; baja de clientes | **Pendiente:** la decisión actual contradice al cliente, que lo pidió en las dos reuniones. Propuesta: incluir en alcance la API con un subconjunto mínimo (los dos endpoints de baja) y documentar el contrato completo, y dejar fuera el resto. Confirmar con el equipo y, si es posible, con el cliente. Si se acepta, hay que corregir A-07 y mantener CU-31. |
+| Q-11 | API: el grupo decidió dejarla fuera porque "las bajas se hacen desde la app". Pero ya en la primera reunión el cliente dijo que la aplicación debía tener una API para decir si hay facturas pendientes (P203, P204), que debe quedar documentada (P128) y que dejar la puerta abierta a una API externa es buena práctica (P212). En la reunión ampliada pide documentar una API (consulta de clientes, deuda, facturas) y dos endpoints concretos: consulta de obligaciones pendientes y aviso de "cliente solicita baja" que genera una tarea. Permite implementar solo un subconjunto representativo, con el contrato documentado. | Entrevista (P127, P128, P129, P203, P204, P212); Reunión ampliada, págs. 4 y 10 | Integración externa por API; baja de clientes | Resuelta: se incluye en el alcance la API (RNI-06, API-01, CU-31) con el subconjunto mínimo representativo (consulta de obligaciones pendientes y notificación de solicitud de baja que genera una tarea interna) y la documentación del contrato (ver A-07). |
 | Q-12 | Rol del usuario operativo: el cliente lo llamó primero "lector" y dijo que solo ve lo que se le asigna (P119); luego, que no puede crear ni editar (P147); y después, que debería poder hacer CRUD sobre lo asignado (P149). | Entrevista (P119, P147, P149); Reunión ampliada, pág. 7 | Permisos de usuario | Resuelta: el cliente dice que importa la capacidad, no el nombre. Puede ver y modificar la información operativa de sus clientes asignados y crear facturas si su permiso lo permite. No puede cambiar tarifas globales, crear series ni ver el dashboard financiero global. |
 | Q-13 | Citas de la reunión ampliada: la transcripción no tiene bloques numerados, por lo que no se puede citar como la primera reunión. | Equipo | Trazabilidad de la fuente de los requisitos | Resuelta: se cita por página ("Reunión ampliada, pág. N"). |
-| Q-14 | Prorrateo del primer mes: en la primera reunión el cliente dijo que si se da de alta el día 22 se le factura la parte proporcional del mes (P212). En la reunión ampliada pide una regla de negocio coherente y documentada (no asumir meses de 30 días) y que se sepa qué hacer si el alta es el último día del mes. No da la regla. | Entrevista (P212); Reunión ampliada, pág. 3 | Suscripciones y facturación recurrente | Pendiente: el equipo debe proponer la regla (p. ej. días reales del mes) y registrarla en la sección 5 y en la sección 6. |
-| Q-15 | Alcance de las ampliaciones: el cliente menciona presupuestos, centros de coste, varias sociedades emisoras, objetivos de facturación, rol externo de gestoría, funciones de IA y fusión de fichas, pero dice que son ampliaciones. ¿Entran o no? | Reunión ampliada, págs. 10-14 | Alcance (sección 1.2); casos de uso | Pendiente: se propone dejarlas fuera del alcance inicial y documentarlas como tales, como pide el cliente. Los datos del emisor deben ser configuración, para no cerrar la puerta a varias sociedades. |
+| Q-14 | Prorrateo del primer mes: en la primera reunión el cliente dijo que si se da de alta el día 22 se le factura la parte proporcional del mes (P212). En la reunión ampliada pide una regla de negocio coherente y documentada (no asumir meses de 30 días) y que se sepa qué hacer si el alta es el último día del mes. No da la regla. | Entrevista (P212); Reunión ampliada, pág. 3 | Suscripciones y facturación recurrente | Resuelta: se establece como regla de negocio (RB-05.1.1, SUB-03 y A-08) facturar por días naturales reales del mes, contando el día del alta (`importe mensual × días restantes / días totales del mes`). Si el alta es el último día del mes, se factura un día, salvo acuerdo comercial explícito de facturar desde el mes siguiente. |
+| Q-15 | Alcance de las ampliaciones: el cliente menciona presupuestos, centros de coste, varias sociedades emisoras, objetivos de facturación, rol externo de gestoría, funciones de IA y fusión de fichas, pero dice que son ampliaciones. ¿Entran o no? | Reunión ampliada, págs. 10-14 | Alcance (sección 1.2); casos de uso | Resuelta: se dejan fuera del alcance obligatorio de implementación inicial y se documentan como tales en el apartado de Ampliaciones (sección 4.1). Los datos fiscales del emisor se gestionan como configuración (CFG-01, RB-12) para no impedir el soporte futuro a varias sociedades. |
 | Q-16 | Umbrales de aprobación, plazos y otros valores: el cliente pide que sean configurables y no da cifras. | Reunión ampliada, págs. 2-3 | Aprobaciones; configuración del sistema | Resuelta: se establecen como configuración sin valor fijo en los requisitos. Se propondrán valores por defecto razonables en el diseño. |
 | Q-17 | Baja con deuda pendiente: en la primera reunión el cliente da versiones distintas. Primero dice que si hay un impago hay que notificar que no puede darse de baja hasta que pague (P098), y que "te daremos de baja cuando hagas frente a la siguiente factura" (P154), y que una factura puntual impagada impide la baja (P168, P169). Luego dice que si se notifica la baja ya no se pasan más facturas, pero se sigue recordando el impago anterior hasta que se pague (P176-P179). | Entrevista (P098, P154, P168, P169, P176-P179); Reunión ampliada, pág. 4 | Baja de clientes; recobro de deuda | Resuelta por interpretación del equipo: la baja es efectiva en la fecha indicada (no se generan más facturas recurrentes) y el recobro de las facturas anteriores continúa (ver A-04). La reunión ampliada lo apoya: el cliente no quiere que una deuda bloquee eternamente la baja comercial ni que la baja haga desaparecer el impago. |
 
 
 ## 8. Trazabilidad
-
-En esta sección se mostrarán las relaciones entre diferentes requisitos del proyecto, mostrando cuando se relacionan requisitos de distintos tipos y con indicaciones cuando la asociación se de con varios requisitos de un mismo subbloque de un tipo o hasta con el subbloque entero (Eso indicándose con el nombre del subbloque o con la notación (Identificador del primer requisito) - (Identificador del último requisito) cuando sea un subconjunto de requisitos consecutivos de un mismo subbloque con la parte numérica ascendente).
-
-Se mostrarán en una tabla donde las columnas será el tipo de requisito que se indique y cada fila será una relación ternaria entre dichos requisitos.
 
 | Requisito de negocio | Requisito de usuario | Requisito funcional / no funcional |
 |---|---|---|
@@ -752,35 +719,35 @@ Se mostrarán en una tabla donde las columnas será el tipo de requisito que se 
 | RNG-04 | URU-05 | CLI-05 |
 | RNG-05 | URU-07 | CLI-01 |
 | RNG-06 | URU-06 | CLI-03 |
-| RNG-07 | URU-07, URU-14 | CLI-05, INT-01, INT-02, PE-07 |
+| RNG-07 | URU-07, URU-14 | CLI-05, INT-01, INT-02, PE-03 |
 | RNG-08 | URU-02 | FAC-01, FAC-02 |
 | RNG-09 | URU-01, URS-01 | FAC-04 |
 | RNG-10 | URU-04, URU-09 | FAC-03, FAC-06, RM-05 |
-| RNG-11 | URU-04, URA-04, URS-01 | FAC-03, INT-03, INT-04 e Int-07 |
+| RNG-11 | URU-04, URA-04, URS-01 | FAC-03, INT-03, INT-04, INT-07 |
 | RNG-12 | URU-07, URU-08, URS-06 | FAC-05, FAC-06, INT-04, INT-11 |
 | RNG-13 | URU-08 | PRO-02, PRO-03, RM-01, AA-07, INT-01, INT-08 |
 | RNG-14 | URU-09, URU-14, URA-15 | TAR-01, FAC-03, PE-03, INT-05 |
 | RNG-15 | URU-06, URA-10, URS-01, URS-06 | PDF-01, FAC-01, FAC-06, APR-01, INT-01, INT-04, RM-01 |
-| RNG-16 | URS-07, URS-03, URA-10, URU-08 | ENV-01, REC-01, REC-02, NOT-01, NOT-02, AA-07, |
-| RNG-17 | URU-05, URU-08, URA-10, URS-05, RNDF-01, RNDF-02 | PAG-02, AUD-01, APR-01, APR-02, FAC-05, FAC-06, INT-04, |
+| RNG-16 | URS-07, URS-03, URA-10, URU-08 | ENV-01, REC-01, REC-02, NOT-01, NOT-02, AA-07 |
+| RNG-17 | URU-05, URU-08, URA-10, URS-05, RNDF-01, RNDF-02 | PAG-02, AUD-01, APR-01, APR-02, FAC-05, FAC-06, INT-04 |
 | RNG-18 | URA-09, URU-08, URA-10, URS-03, URS-07, RG-02 | SUB-04, CLI-05, ENV-01, REC-01, REC-02, NOT-01, NOT-02, INT-01, INT-02, SEG-03 |
 | RNG-19 | URA-09, URS-06, URS-07, RG-08 | NOT-02, AUD-01, PRI-01, REC-02, INT-10, INT-04, RM-04 |
 | RNG-20 | URA-03, URU-02, URS-01 | SUB-03, APR-01, FAC-01, CLI-01, INT-07, INT-11 |
 | RNG-21 | URA-03, URS-01, URS-03, RG-05, RG-06 | CLI-05, SUB-04, APR-01, REC-02, DAS-01, CFG-01, PRI-01, RM-04, INT-02, INF-01, BUS-01 |
 | RNG-22 | URA-14, URU-08, URA-09, URA-10, URS-03, URA-11, RG-04, RG-06, RNDF-02 | AUD-01, DAS-01, INF-01, NOT-01, FAC-01, SUB-04, CLI-04, INT-05, INT-01 |
-| RNG-23 | URU-05, URU-07, URA-07, URA-11, URS-03, RG-06 | CLI-03, SUB-01, FAC-01, DAS-02, INF-01, BUS-01, IMP-01, AA-01. |
-| RNC-01 | URU-10, URU-11, URA-07, URA-11, URA-12, URS-04, URS-07, RG-02, RG-04, RNDF-02, RNDF-05 | DAS-02, USU-01 - USU-04, PRO-01, AMB-02, RM-03, SEG-01, SEG-02 |
-| RNC-02 | URU-01 - URU-06, URU-09, URU-13, URA-01 - URA-07, URA-11 - URA-14, URS-01, URS-02, URS-05 - URS-07 | USU-01 - USU-04, "15 Auditoría y Configuración", CLI-03, RM-03, AA-06, INT-02 |
-| RNC-03 | "1.3 Super Administrador", RG-04, RG-09, RG-10 | USU-01, USU-03, "15 Auditoría y Configuración", PRO-04, DAS-02, PAG-01, REC-01, APR-01, INT-04, SEG-03 - SEG-06, RM-05, TAR-01 |
-| RNC-04 | URA-05, URA-06, URA-08, URA-12, URS-03, URS-07, RG-04, RNDF-05 | CLI-03, NOT-01, USU-01 - USU-03, AMB-02, RM-03, INT-02, SEG-02, SEG-07, SEG-09. |
-| RNC-05 | URU-12, URU-13, URA-05, URS-02, URS-04, | CLI-03, NOT-01, BUS-01, USU-03, PRO-01, INT-01, INT-02, INT-07, SEG-08, |
-| RNC-06 | URA-04, URS-01, URS-06, RG-05, | "4 Descuentos y Aprobaciones", TAR-01, SUB-04, FAC-06, "10 Pagos y Conciliación", DAS-02, AUD-01 |
+| RNG-23 | URU-05, URU-07, URA-07, URA-11, URS-03, RG-06 | CLI-03, SUB-01, FAC-01, DAS-02, INF-01, BUS-01, IMP-01, AA-01 |
+| RNC-01 | URU-10, URU-11, URA-07, URA-11, URA-12, URS-04, URS-07, RG-02, RG-04, RNDF-02, RNDF-05 | DAS-02, USU-01, USU-02, USU-03, USU-04, PRO-01, AMB-02, RM-03, SEG-01, SEG-02 |
+| RNC-02 | URU-01 - URU-06, URU-09, URU-13, URA-01 - URA-07, URA-11 - URA-14, URS-01, URS-02, URS-05 - URS-07 | USU-01, USU-02, USU-03, USU-04, AUD-01, CFG-01, CLI-03, RM-03, AA-06, INT-02 |
+| RNC-03 | URS-01, URS-02, URS-03, URS-04, URS-05, URS-06, URS-07, RG-04, RG-09, RG-10 | USU-01, USU-03, AUD-01, CFG-01, PRO-04, DAS-02, PAG-01, REC-01, APR-01, INT-04, SEG-03, SEG-04, SEG-05, SEG-06, RM-05, TAR-01 |
+| RNC-04 | URA-05, URA-06, URA-08, URA-12, URS-03, URS-07, RG-04, RNDF-05 | CLI-03, NOT-01, USU-01, USU-02, USU-03, AMB-02, RM-03, INT-02, SEG-02, SEG-07, SEG-09 |
+| RNC-05 | URU-12, URU-13, URA-05, URS-02, URS-04 | CLI-03, NOT-01, BUS-01, USU-03, PRO-01, INT-01, INT-02, INT-07, SEG-08 |
+| RNC-06 | URA-04, URS-01, URS-06, RG-05 | APR-01, APR-02, TAR-01, SUB-04, FAC-06, PAG-01, PAG-02, PAG-03, DAS-02, AUD-01 |
 | RNC-07 | URA-16, URA-17, URS-06, RG-08 | USU-02, USU-03, BUS-01, NOT-01, ENV-03, CLI-03, RM-03, AA-04, LEG-02 |
-| RNC-08 | URU-05, URU-10, URU-12, URU-13, URA-08, URA-11, URS-04, RG-4 | USU-02, AA-06, RM-03 |
-| RNC-09 | URU-02, URU-08, URA-03, URA-10, URA-13, URS-01, URS-06, RG-02, RG-06, | "3 Tarifas y Revisión anual", "4 Descuentos y Aprobaciones", FAC-06, GEN-01, PDF-01, NOT-01, INF-01, AUD-01, PE-03, INT-03 |
-| RNC-10 | URS-01 | CLI-01, SUB-01, "3 Tarifas t Revisión anual", APR-02, GEN-01, IMP-01, AUD-01, INT-04, |
-| RNC-11 | URS-07, RNDF-01 | PRO-04, "15 Auditoría y Configuración", DAS-02, "10 Pagos y Conciliación", ENV-01, APR-02, RM-02, INT-06, INT-10, LEG-03 |
-| RNC-12 | RG-06, RG-07 | CLI-05, SUB-01, FAC-03 - FAC-05, FAC-07, SEG-03 - SEG-06, INT-08, INT-04, PE-06 |
+| RNC-08 | URU-05, URU-10, URU-12, URU-13, URA-08, URA-11, URS-04, RG-04 | USU-02, AA-06, RM-03 |
+| RNC-09 | URU-02, URU-08, URA-03, URA-10, URA-13, URS-01, URS-06, RG-02, RG-06 | TAR-01, TAR-02, APR-01, APR-02, FAC-06, GEN-01, PDF-01, NOT-01, INF-01, AUD-01, PE-03, INT-03 |
+| RNC-10 | URS-01 | CLI-01, SUB-01, TAR-01, TAR-02, APR-02, GEN-01, IMP-01, AUD-01, INT-04 |
+| RNC-11 | URS-07, RNDF-01 | PRO-04, AUD-01, CFG-01, DAS-02, PAG-01, PAG-02, PAG-03, ENV-01, APR-02, RM-02, INT-06, INT-10, LEG-03 |
+| RNC-12 | RG-06, RG-07 | CLI-05, SUB-01, FAC-03, FAC-04, FAC-05, FAC-07, SEG-03, SEG-04, SEG-05, SEG-06, INT-08, INT-04, PE-06 |
 | RNC-13 | URA-07, URS-03, RNDF-05 | DAS-02, DAS-01, CFG-01, PRO-04, PAG-01, TAR-01, INT-01, INT-05, INT-07 |
 | RNI-01 | RG-09 | ENV-01, FAC-03, FAC-06, AA-02 |
 | RNI-02 | URU-08, RNDF-01, URS-03, URA-10 | ENV-01, NOT-01 |
@@ -789,7 +756,7 @@ Se mostrarán en una tabla donde las columnas será el tipo de requisito que se 
 | RNI-05 | RG-10 | NOT-01, NOT-02, CLI-05 |
 | RNI-06 | RNDF-01, RNDF-04 | API-01 |
 | RNI-07 | RNDF-01 | IND-01, API-01, INT-01, PAG-01 |
-| RNS-01 | RG-03 | TAR-02, APR-02, INF-01, IMP-01, AUD-01, INT-02 + subapartados, PAG-03 |
+| RNS-01 | RG-03 | TAR-02, APR-02, INF-01, IMP-01, AUD-01, INT-02, INT-02.1, INT-02.2, INT-02.3, INT-02.4, INT-02.5, PAG-03 |
 | RNS-02 | RG-01 | SEG-01, USU-01 |
 | RNS-03 | URS-06, URS-07 | PRI-01, CLI-04, LEG-02, LEG-01 |
 | RNS-04 | URS-03, URS-06, RG-08 | NOT-01 |
@@ -813,7 +780,6 @@ Se mostrarán en una tabla donde las columnas será el tipo de requisito que se 
 | RNC | Requisitos de negocio de control interno. Requisitos centrados en los roles dentro de la empresa, configuraciones que gestionan dichos roles y tarifas. |
 | RNI | Requisitos de negocio de comunicación e integración. Requisitos centrados en los mensajes con los clientes y conexión con otros sistemas dentro de la empresa. |
 | RNS | Requisitos de negocio de seguridad y continuidad. Requisitos centrados en las copias de seguridad y cumplimiento legal en la empresa. |
-| RSL | Requisitos de seguridad lógica / respaldo (usado en RSL-05). Se refiere a los requisitos enfocados en la realización de copias de seguridad automáticas de datos y documentos y la posibilidad de probar y ejecutar su restauración. |
 
 ### Términos de la sección Requisitos de Usuario
 
