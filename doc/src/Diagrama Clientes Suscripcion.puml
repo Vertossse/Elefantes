@@ -1,4 +1,4 @@
-@startuml Diagrama de clientes y suscripcion
+@startuml Diagrama de Clientes y Suscripcion
 left to right direction
 
 ' Actores
@@ -10,7 +10,7 @@ actor "Superadministrador"  as SA
 AD --|> UO
 SA --|> AD
 
-rectangle "Sistema TurbineH" {
+rectangle "Diagrama de Clientes y Suscripcion" {
     usecase "CU-04\nRegistrar un cliente"                   as CU04
     usecase "CU-05\nGestionar la ficha de un cliente"       as CU05
     usecase "CU-06\nImportar datos desde CSV"               as CU06

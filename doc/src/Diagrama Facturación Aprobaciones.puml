@@ -1,4 +1,4 @@
-@startuml Diagrama Facturacion
+@startuml Sistema de Facturación y Aprobaciones
 left to right direction
 
 ' Actores

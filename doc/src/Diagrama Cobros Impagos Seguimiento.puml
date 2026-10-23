@@ -1,4 +1,4 @@
-@startuml Diagrama de cobros impagos y seguimiento
+@startuml Diagrama de Cobros Impagos y Seguimiento
 left to right direction
 
 ' Actores
@@ -10,7 +10,7 @@ actor "Pasarela de Pago (Stripe)"   as Stripe
 ' Relaciones de herencia entre actores
 AD --|> UO
 
-rectangle "Sistema TurbineH" {
+rectangle "Diagrama de Cobros Impagos y Seguimiento" {
     usecase "CU-18\nEnviar recordatorios y avisos de impago"    as CU18
     usecase "CU-19\nGestionar una disputa"                      as CU19
     usecase "CU-20\nConciliar cobros automáticamente"           as CU20

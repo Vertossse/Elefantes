@@ -1,4 +1,4 @@
-@startuml Diagrama de acceso usuario y configuracion
+@startuml Diagrama de Acceso Usuario y Configuracion
 left to right direction
 
 ' Actores
@@ -10,7 +10,7 @@ actor "Superadministrador"  as SA
 AD --|> UO
 SA --|> AD
 
-rectangle "Sistema TurbineH" {
+rectangle "Diagrama de Acceso Usuario y Configuracion" {
     usecase "CU-01\nIniciar sesion"                             as CU01
     usecase "CU-02\nGestionar usuarios internos"                as CU02
     usecase "CU-03\nAsignar clientes a un usuario"              as CU03
