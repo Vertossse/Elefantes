@@ -1,0 +1,35 @@
+@startuml Diagrama de acceso usuario y configuracion
+left to right direction
+
+' Actores
+actor "Usuario operativo"   as UO
+actor "Administrador"       as AD
+actor "Superadministrador"  as SA
+
+' Relaciones de herencia entre actores
+AD --|> UO
+SA --|> AD
+
+rectangle "Sistema TurbineH" {
+    usecase "CU-01\nIniciar sesion"                             as CU01
+    usecase "CU-02\nGestionar usuarios internos"                as CU02
+    usecase "CU-03\nAsignar clientes a un usuario"              as CU03
+
+    usecase "CU-27\nConfigurar el sistema"                      as CU27
+    usecase "CU-28\nSupervisar el sistema"                      as CU28
+    usecase "CU-29\nCerrar un periodo administrativo"           as CU29
+    usecase "CU-30\nGestionar datos personales de un contacto"  as CU30
+}
+
+' Relaciones de los actores con los casos de uso
+UO -- CU01
+
+AD -- CU02
+AD -- CU03
+AD -- CU29
+AD -- CU30
+
+SA -- CU27
+SA -- CU28
+
+@enduml

@@ -1,0 +1,44 @@
+@startuml Diagrama de clientes y suscripcion
+left to right direction
+
+' Actores
+actor "Usuario Operativo"   as UO
+actor "Administrador"       as AD
+actor "Superadministrador"  as SA
+
+' Relaciones de herencia entre actores
+AD --|> UO
+SA --|> AD
+
+rectangle "Sistema TurbineH" {
+    usecase "CU-04\nRegistrar un cliente"                   as CU04
+    usecase "CU-05\nGestionar la ficha de un cliente"       as CU05
+    usecase "CU-06\nImportar datos desde CSV"               as CU06
+    usecase "CU-07\nDar de baja a un cliente"               as CU07
+    usecase "CU-08\nGestionar la suscripción de un cliente" as CU08
+    usecase "CU-09\nRevisar el rango anual de un cliente"   as CU09
+    
+    usecase "CU-31\nAtender consultas por API"              as CU31
+}
+
+' Relaciones de los actores con los casos de uso
+UO --> CU04
+UO --> CU05
+UO --> CU07
+UO --> CU08
+
+AD --> CU04
+AD --> CU05
+AD --> CU06
+AD --> CU07
+AD --> CU08
+AD --> CU09
+
+SA --> CU06
+SA --> CU09
+
+' Relaciones entre los casos de uso
+CU04 ..> CU08 : <<include>>
+CU07 ..> CU08 : <<extend>>
+
+@enduml

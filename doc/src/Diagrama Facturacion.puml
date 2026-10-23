@@ -1,6 +1,7 @@
-@startuml name Diagrama Facturacion
+@startuml Diagrama Facturacion
 left to right direction
 
+' Actores
 actor "Usuario Operativo"   as UO
 actor "Administrador"       as Admin
 actor "Superadministrador"  as SuperAdmin
