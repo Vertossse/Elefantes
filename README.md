@@ -46,11 +46,4 @@ cd Elefantes
 
 ## Equipo
 
-Tania Muñoz Iglesia.
-Fernando de la Cruz Martos.
-Lucas Ariel Fanelli Sánchez.
-Lucas Grande Ramírez.
-Julio Herrera Sánchez.
-Alexandru Olsanschi.
-Antonio Rengel Fernández.
-Rubén Sánchez Rosa.
+Tania Muñoz Iglesia, Fernando de la Cruz Martos, Lucas Ariel Fanelli Sánchez, Lucas Grande Ramírez, Julio Herrera Sánchez, Alexandru Olsanschi, Antonio Rengel Fernández, Rubén Sánchez Rosa.
