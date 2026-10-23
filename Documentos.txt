@@ -13,13 +13,13 @@
 
 GitHub quali file sono da caricare per ultimi
 1. Analisis de Requisitos.md    (Pronto)
-2. Analisis de Requisitos.pdf   (Pronto)
+2. Analisis de Requisitos.pdf   (To do)
 3. Informe Scrum.md             (Tania)
 4. Informe Scrum.pdf            (Tania)
-5. Diagrama UML de casos de uso (Manca Fernando)
+5. Diagrama UML de casos de uso (Pronto)
     Diagramas
         imagenes
     Codigo Diagramas
         puml
-6. Especificacion de casos de uso.md    (Aspetto risposta)
-7. Especificacion de casos de uso.pdf   (Aspetto risposta)
+6. Especificacion de casos de uso.md    (To do)
+7. Especificacion de casos de uso.pdf   (To do)
