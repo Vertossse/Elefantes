@@ -12,7 +12,7 @@
 4. Especificación de caso de uso (Ya está hecho / Ya existe)
 
 GitHub quali file sono da caricare per ultimi
-1. Analisis de Requisitos.md    (Pronto)
+1. Analisis de Requisitos.md    (Pronto?)
 2. Analisis de Requisitos.pdf   (To do)
 3. Informe Scrum.md             (Tania)
 4. Informe Scrum.pdf            (Tania)
