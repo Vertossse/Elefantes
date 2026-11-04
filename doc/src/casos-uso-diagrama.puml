@@ -1,0 +1,173 @@
+@startuml Diagrama de Acceso Usuario y Configuracion
+left to right direction
+
+' Actores
+actor "Usuario operativo"   as UO
+actor "Administrador"       as AD
+actor "Superadministrador"  as SA
+
+' Relaciones de herencia entre actores
+AD --|> UO
+SA --|> AD
+
+rectangle "Diagrama de Acceso Usuario y Configuracion" {
+    usecase "CU-01\nIniciar sesion"                             as CU01
+    usecase "CU-02\nGestionar usuarios internos"                as CU02
+    usecase "CU-03\nAsignar clientes a un usuario"              as CU03
+
+    usecase "CU-27\nConfigurar el sistema"                      as CU27
+    usecase "CU-28\nSupervisar el sistema"                      as CU28
+    usecase "CU-29\nCerrar un periodo administrativo"           as CU29
+    usecase "CU-30\nGestionar datos personales de un contacto"  as CU30
+}
+
+' Relaciones de los actores con los casos de uso
+UO -- CU01
+
+AD -- CU02
+AD -- CU03
+AD -- CU29
+AD -- CU30
+
+SA -- CU27
+SA -- CU28
+
+@enduml
+@startuml Diagrama de Clientes y Suscripcion
+left to right direction
+
+' Actores
+actor "Usuario Operativo"   as UO
+actor "Administrador"       as AD
+actor "Superadministrador"  as SA
+
+' Relaciones de herencia entre actores
+AD --|> UO
+SA --|> AD
+
+rectangle "Diagrama de Clientes y Suscripcion" {
+    usecase "CU-04\nRegistrar un cliente"                   as CU04
+    usecase "CU-05\nGestionar la ficha de un cliente"       as CU05
+    usecase "CU-06\nImportar datos desde CSV"               as CU06
+    usecase "CU-07\nDar de baja a un cliente"               as CU07
+    usecase "CU-08\nGestionar la suscripción de un cliente" as CU08
+    usecase "CU-09\nRevisar el rango anual de un cliente"   as CU09
+    
+    usecase "CU-31\nAtender consultas por API"              as CU31
+}
+
+' Relaciones de los actores con los casos de uso
+UO --> CU04
+UO --> CU05
+UO --> CU07
+UO --> CU08
+
+AD --> CU04
+AD --> CU05
+AD --> CU06
+AD --> CU07
+AD --> CU08
+AD --> CU09
+
+SA --> CU06
+SA --> CU09
+
+' Relaciones entre los casos de uso
+CU04 ..> CU08 : <<include>>
+CU07 ..> CU08 : <<extend>>
+
+@enduml
+@startuml Sistema de Facturación y Aprobaciones
+left to right direction
+
+' Actores
+actor "Usuario Operativo"   as UO
+actor "Administrador"       as Admin
+actor "Superadministrador"  as SuperAdmin
+actor "Reloj del Sistema"   as Reloj
+
+' Relaciones de herencia entre actores
+Admin <|-- SuperAdmin
+
+rectangle "Sistema de Facturación y Aprobaciones" {
+    usecase "CU-10 Solicitar excepción comercial"   as CU10
+    usecase "CU-11 Aprobar/rechazar solicitudes"    as CU11
+    usecase "CU-12 Crear factura puntual"           as CU12
+    usecase "CU-13 Emitir factura"                  as CU13
+    usecase "CU-14 Generar facturas recurrentes"    as CU14
+    usecase "CU-15 Rectificar factura emitida"      as CU15
+    usecase "CU-16 Consultar factura y PDF"         as CU16
+    usecase "CU-17 Resolver envío fallido"          as CU17
+}
+
+' Relaciones de los actores con los casos de uso
+UO --> CU10
+Admin --> CU10
+Admin --> CU11
+SuperAdmin --> CU11
+UO --> CU12
+Admin --> CU12
+UO --> CU13
+Admin --> CU13
+Reloj --> CU14
+Admin --> CU15
+UO --> CU16
+Admin --> CU16
+UO --> CU17
+Admin --> CU17
+
+' Relaciones entre los casos de uso
+CU14 ..> CU13 : <<include>>
+CU12 <.. CU13 : <<extend>> \n(emite borrador)
+CU13 <.. CU11 : <<extend>> \n(si requiere aprobación)
+CU15 <.. CU11 : <<extend>> \n(si supera umbral)
+CU13 <.. CU17 : <<extend>> \n(si rebota correo)
+
+@enduml
+@startuml Diagrama de Cobros Impagos y Seguimiento
+left to right direction
+
+' Actores
+actor "Usuario Operativo"           as UO
+actor "Administrador"               as AD
+actor "Reloj del Sistema"           as Reloj
+actor "Pasarela de Pago (Stripe)"   as Stripe
+
+' Relaciones de herencia entre actores
+AD --|> UO
+
+rectangle "Diagrama de Cobros Impagos y Seguimiento" {
+    usecase "CU-18\nEnviar recordatorios y avisos de impago"    as CU18
+    usecase "CU-19\nGestionar una disputa"                      as CU19
+    usecase "CU-20\nConciliar cobros automáticamente"           as CU20
+    usecase "CU-21\nConciliar un cobro a mano"                  as CU21
+    usecase "CU-22\nConsultar pantalla de trabajo diario"       as CU22
+    usecase "CU-23\nGestionar incidencias de facturación"       as CU23
+    usecase "CU-24\nConsultar dashboard financiero"             as CU24
+    usecase "CU-25\nGenerar y exportar informes"                as CU25
+    usecase "CU-26\nBuscar en el sistema"                       as CU26
+}
+
+' Relaciones de los actores con los casos de uso
+UO --> CU19
+UO --> CU22
+UO --> CU23
+UO --> CU25
+UO --> CU26
+
+AD --> CU19
+AD --> CU21
+AD --> CU22
+AD --> CU23
+AD --> CU24
+AD --> CU25
+AD --> CU26
+
+Reloj --> CU18
+Stripe --> CU20
+
+' Relaciones entre los casos de uso
+CU20 <.. CU21 : <<extend>> \n(si hay dudas)
+CU18 ..> CU19 : <<extend>> \n(pausa en disputa)
+
+@enduml

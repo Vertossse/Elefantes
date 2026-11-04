@@ -1,0 +1,21 @@
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Archivos temporales
+*.tmp
+*.temp
+*~
+
+# Copias de seguridad
+*.bak
+*.old
+*.orig
+
+# Archivos de registro
+*.log
+
+# Archivos temporales de editores
+*.swp
+*.swo
