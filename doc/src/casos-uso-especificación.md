@@ -274,11 +274,11 @@ Flujos alternativos:
 **CU-04: Registrar un cliente:**  
 **Objetivo:** Describe el comportamiento del sistema cuando un empleado con permisos registra una nueva empresa cliente en la plataforma junto con sus personas de contacto, diferenciando los datos obligatorios para la facturación de los opcionales, validando posibles duplicados y permitiendo reactivar fichas de antiguos clientes que regresan**.** 
 
-**Actores: AD, SA y UO (con permiso)** 
+**Actores: AD, SA y UO (con permiso, solo sobre sus clientes asignados)** 
 
 **Precondiciones:**
 
-* El usuario debe tener una sesión iniciada en la plataforma y contar con el rol de superadministrador o de usuario operativo con permisos habilitados para dar de alta clientes (realizándose cualquier acceso no autorizado según USU-04).  
+* El usuario debe tener una sesión iniciada en la plataforma y contar con el rol de superadministrador o de usuario operativo con permisos habilitados para dar de alta clientes, que solo podrá ejecutar esta acción sobre sus clientes asignados (realizándose cualquier acceso no autorizado según USU-04).  
 * El empleado debe disponer al menos de los datos básicos de la empresa cliente y de sus contactos para iniciar el registro.
 
 **Flujo Principal:**
@@ -392,7 +392,7 @@ Flujos alternativos:
 
 **Precondiciones:**
 
-* El usuario debe tener su sesión iniciada en la plataforma y ser superadministrador o el usuario operativo responsable del cliente.  
+* El usuario debe tener su sesión iniciada en la plataforma y ser superadministrador o el usuario operativo responsable del cliente, que solo podrá dar de baja a los clientes que tenga asignados.  
 * El cliente debe encontrarse actualmente en estado activo dentro del sistema.
 
 **Flujo Principal:**
@@ -512,7 +512,8 @@ Flujos alternativos:
 **Precondiciones:**
 
 - El usuario debe tener una sesión iniciada en la plataforma.  
-- El cliente debe tener una suscripción registrada (CU-08) y, si el usuario es un UO, debe tenerlo asignado.
+- El cliente debe tener una suscripción registrada (CU-08) y, si el usuario es un UO, debe tenerlo asignado.  
+- Regla de negocio: la aprobación corresponde a un administrador, o al superadministrador si se supera el umbral configurado, y cuando la regla exige separación de funciones no puede aprobarla quien la solicitó.
 
 **Flujo Principal:**
 
@@ -521,7 +522,7 @@ Flujos alternativos:
 3. El usuario elige el tipo de excepción e indica su valor (porcentaje o importe), el periodo en que se aplicará y el motivo.  
 4. El sistema muestra un resumen con el efecto que tendría la excepción sobre las próximas facturas del cliente.  
 5. El usuario confirma la solicitud.  
-6. El sistema registra la solicitud como pendiente de aprobación, determina quién debe aprobarla (un administrador, o el superadministrador si supera el umbral configurado) y le envía una notificación.
+6. El sistema registra la solicitud como pendiente de aprobación, determina quién debe aprobarla según la regla de negocio indicada en las precondiciones y le envía una notificación.
 
 **Flujos Alternativos:**
 
@@ -549,7 +550,8 @@ Flujos alternativos:
 **Precondiciones:**
 
 - El usuario debe tener una sesión iniciada en la plataforma con el rol de administrador o superadministrador.  
-- Debe existir al menos una solicitud pendiente asignada al usuario. Las solicitudes pueden venir de una excepción comercial (CU-08 y CU-10), de un cambio de rango (CU-09), de una emisión de factura (CU-13), de una rectificación (CU-15) o de una deuda que se quiere cancelar o declarar incobrable (CU-19).
+- Debe existir al menos una solicitud pendiente asignada al usuario. Las solicitudes pueden venir de una excepción comercial (CU-08 y CU-10), de un cambio de rango (CU-09), de una emisión de factura (CU-13), de una rectificación (CU-15) o de una deuda que se quiere cancelar o declarar incobrable (CU-19).  
+- Regla de negocio: un administrador solo puede aprobar solicitudes que no superen su umbral (las que lo superan corresponden al superadministrador) y, cuando la regla exige separación de funciones, nadie puede aprobar una solicitud propia.
 
 **Flujo Principal:**
 
@@ -720,7 +722,8 @@ Flujos alternativos:
 **Precondiciones:**
 
 - El usuario debe tener una sesión iniciada en la plataforma con el rol de administrador o superadministrador.  
-- La factura que se quiere corregir debe estar emitida.
+- La factura que se quiere corregir debe estar emitida.  
+- Regla de negocio: si el importe rectificado supera el umbral de aprobación, la rectificativa requiere aprobación (CU-11).
 
 **Flujo Principal:**
 
@@ -796,7 +799,8 @@ Flujos alternativos:
 **Precondiciones:**
 
 - El envío de una factura falló o el correo rebotó.  
-- El sistema abrió una incidencia de entrega y notificó al responsable del cliente.
+- El sistema abrió una incidencia de entrega (CU-23) y notificó al responsable del cliente.  
+- Mientras el correo no se entregue, la factura no se da por notificada.
 
 **Flujo Principal:**
 
@@ -820,7 +824,7 @@ Flujos alternativos:
 **Postcondiciones:**
 
 - La factura queda notificada, o la incidencia sigue abierta con todos los intentos registrados.  
-- El historial distingue el envío original de los reintentos y no se crea ninguna factura nueva.
+- El historial distingue el envío original de los reintentos y no se crea ninguna factura nueva ni se genera nunca un nuevo comprobante con distinta numeración.
 
 **Requisitos funcionales asociados:** ENV-02, ENV-03, USU-04, PRO-02
 
@@ -832,7 +836,8 @@ Flujos alternativos:
 **Precondiciones:** 
 
 - Para recibir recordatorios, el cliente debe tener un pago pendiente en su cuenta.  
-- Para recibir avisos de impago, el cliente debe no haber pagado alguna factura tras su fecha de vencimiento.
+- Para recibir avisos de impago, el cliente debe no haber pagado alguna factura tras su fecha de vencimiento.  
+- Regla de negocio: mientras una factura tenga el seguimiento pausado o esté en disputa (CU-19), no se envían recordatorios ni avisos de impago sobre ella.
 
 **Flujo Principal:**  
 Se trata de un proceso automatizado, por lo que no se requerirá intervención de ningún usuario. Además, tendrá que ejecutarse, al menos, una vez al día, por lo que actuará en segundo plano. Por lo general: 
@@ -847,14 +852,14 @@ Se trata de un proceso automatizado, por lo que no se requerirá intervención d
 **Flujos alternativos:**  
 No se contemplarán como flujos alternativos los “caminos” provocados por modificaciones en los plazos, ya que no modifica el flujo principal de forma sustancial. 
 
-**1º Seguimiento pausado o en disputa:** Durante el periodo de tiempo en el que estos estados tengan efecto, las notificaciones y avisos cesan.
+**1º Seguimiento pausado o en disputa:** Se aplica la regla de negocio indicada en las precondiciones.
 
 **2º Pago o intervención:** Si la factura ya ha sido pagada o el problema se ha solucionado de otra manera, tanto avisos como notificaciones cesan. 
 
 **3º Festivos:** En caso de que un recordatorio o aviso caiga en un día no laboral, se pasará al siguiente día laboral según el calendario.
 
 **Flujos de excepción:**  
-No se contempla ningún flujo de excepción para este caso. Los errores de entrega y ejecución se tratan en otros casos de uso y en los requisitos.
+No se contempla ningún flujo de excepción para este caso. Los errores de entrega (como un correo rebotado, que se trata según CU-17 y CU-23) y de ejecución se tratan en otros casos de uso y en los requisitos.
 
 **Postcondiciones:**
 
@@ -870,7 +875,8 @@ No se contempla ningún flujo de excepción para este caso. Los errores de entre
 **Precondiciones:** 
 
 - El usuario a gestionar la disputa debe haber accedido al sistema con el rol de administrador.  
-- El cliente debe haber puesto una reclamación sobre alguno de los pagos.
+- El cliente debe haber puesto una reclamación sobre alguno de los pagos.  
+- Regla de negocio: mientras una factura esté en disputa quedan congelados los recordatorios y avisos de impago sobre ella, y su cancelación o declaración como incobrable requiere motivo y aprobación (CU-11).
 
 **Flujo Principal:**
 
@@ -932,10 +938,11 @@ No se contempla ningún flujo de excepción para este caso. Los errores de entre
 **CU-21: Conciliar un cobro a mano:**  
 **Objetivo:** Trata la gestión de un cobro que no ha podido ser automatizado y, por lo tanto, debe ser revisado y/o gestionado por usuarios humanos. 
 
-**Actores:** AD  
+**Actores:** AD y UO (solo sus clientes asignados)  
 **Precondiciones:** 
 
-- El sistema debe haber delegado una factura en manos del responsable a cargo (precondición derivada de CU-20).
+- El sistema debe haber delegado una factura en manos del responsable a cargo (precondición derivada de CU-20).  
+- Si el usuario es un UO, el cliente de la factura debe estar asignado a su cartera y solo podrá conciliar cobros de sus clientes asignados.
 
 **Flujo Principal:**
 
@@ -1296,7 +1303,7 @@ La reacción es la misma para ambos casos, cuando el sistema detecte esa anomal�
 
 * El sistema externo envía una petición a la API notificando que un cliente determinado solicita darse de baja.  
 * El sistema recibe el aviso, valida la petición y localiza al usuario responsable asignado a dicho cliente.  
-* En lugar de borrar o desactivar automáticamente la recurrencia del cliente, el sistema genera una tarea pendiente y una notificación para su responsable (visible en su pantalla de trabajo diario, CU-22) para que revise el caso y tramite la baja de forma controlada (CU-07).  
+* En lugar de cancelar automáticamente la recurrencia del cliente o eliminar su deuda, el sistema genera una tarea pendiente en la pantalla de trabajo diario (CU-22), asignada al responsable del cliente, junto con una notificación, para que revise el caso y tramite la baja de forma controlada (CU-07).  
 * El sistema responde al sistema externo confirmando la correcta recepción del aviso.
 
 **Flujos de Excepción:**
@@ -1308,7 +1315,7 @@ La reacción es la misma para ambos casos, cuando el sistema detecte esa anomal�
 **Postcondiciones:**
 
 * En caso de consulta, el sistema externo recibe la información actualizada sobre las facturas pendientes del cliente sin que se modifiquen datos internos.  
-* En caso de aviso de baja, la recurrencia del cliente sigue intacta por seguridad, pero queda registrada una tarea asignada a su responsable para gestionar la baja.
+* En caso de aviso de baja, la recurrencia del cliente y su deuda siguen intactas por seguridad, pero queda registrada una tarea asignada a su responsable para gestionar la baja.
 
 **Requisitos funcionales asociados: API-01, USU-04, PRO-02**
 
