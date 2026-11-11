@@ -1,0 +1,231 @@
+@startuml Arquitectura
+skinparam style strictuml
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+
+package "Capa Interfaz (Boundary)" {
+    class GestorElementosVisuales <<control>> {
+        +construirInterfaz(usuario)
+        +construirBandeja(usuario)
+        +abrirVentana(tipo)
+        +construirFicha(entidad)
+        +construirHistorial(tipo, filtro)
+    }
+
+    abstract class Interfaz <<boundary>>
+    abstract class BandejaEntrada <<boundary>>
+    abstract class Ventana <<boundary>>
+    abstract class Ficha <<boundary>>
+    abstract class Historial <<boundary>>
+
+    GestorElementosVisuales --> Interfaz
+    GestorElementosVisuales --> BandejaEntrada
+    GestorElementosVisuales --> Ventana
+    GestorElementosVisuales --> Ficha
+    GestorElementosVisuales --> Historial
+}
+
+package "Servicios Transversales" {
+    class Reloj <<singleton>> {
+        +iniciar()
+        +programar(proceso, frecuencia)
+        +tic()
+    }
+
+    class AutenticadorValidador <<static>> {
+        +verificarCredenciales(email, pass)
+        +comprobarPermiso(usuario, operacion, cliente)
+        +validarCorreo()
+        +validarNIF()
+    }
+
+    interface Repositorio<T> {
+        +guardar(t: T)
+        +buscarPorId(id): T
+        +buscar(filtro: Filtro<T>): Lista<T>
+    }
+}
+
+package "Capa Control (Gestores)" {
+    class GestorAcceso <<control>>
+    class GestorClientes <<control>>
+    class GestorSuscripciones <<control>>
+    class GestorAprobaciones <<control>>
+    class GestorFacturas <<control>>
+    class GestorCobros <<control>>
+    class GestorTrabajo <<control>>
+    class GestorInformes <<control>>
+    class GestorSistema <<singleton, control>>
+    class GestorMovimientos <<control>> {
+        +registrarMovimiento(tipo: TipoMovimiento, usuario: Usuario, entidad: Texto, idEntidad: Texto, detalle: Texto): Movimiento
+        +registrarAuditoria(tabla: Texto, idRegistro: Texto, accion: TipoAccionAuditoria, usuario: Usuario, anterior: JSON, nuevo: JSON): RegistroAuditoria
+        +registrarEnvio(tipoMsg: TipoMensaje, canal: CanalNotificacion, contacto: Contacto, factura: Factura): EnvioComunicacion
+        +registrarImportacion(usuario: Usuario, archivo: Texto, total: Entero, correctas: Entero, errores: Entero): ImportacionCSV
+        +consultarMovimientos(filtro: FiltroMovimientos): Lista<Movimiento>
+    }
+
+    GestorTrabajo ..> Reloj : escucha
+    GestorFacturas ..> Reloj : escucha
+    GestorCobros ..> Reloj : escucha
+
+    GestorFacturas ..> Repositorio
+    GestorClientes ..> Repositorio
+    GestorMovimientos ..> Repositorio
+}
+
+package "Capa Dominio (Entidades)" {
+    abstract class Usuario <<entity>> {
+        -idUsuario: Entero
+        -emailCorporativo: Texto
+    }
+    class UsuarioOperativo extends Usuario
+    class Administrador extends Usuario
+    class SuperAdministrador extends Administrador
+
+    class Cliente <<entity>> {
+        -nifCif: Texto
+        -razonSocial: Texto
+    }
+
+    class Suscripcion <<entity>> {
+        -idSuscripcion: Entero
+        -tarifaAcordada: Decimal
+        -estado: Enum
+    }
+
+    class Concepto <<entity>> {
+        -idConcepto: Entero
+        -nombre: Texto
+        -descripcionPorDefecto: Texto
+        -precioBase: Decimal
+        -impuestoPorDefecto: Decimal
+        -activo: Booleano
+    }
+
+    abstract class Factura <<entity>> {
+        -idFactura: Entero
+        -total: Decimal
+        -estado: Enum
+        -conceptos: Lista<Concepto>
+        +recalcularTotales(): Decimal
+    }
+    class FacturaRecurrente extends Factura
+    class FacturaPuntual extends Factura
+    class FacturaRectificativa extends Factura
+
+    Factura "1" o-- "1..*" Concepto : conceptos
+
+    abstract class Tarea <<entity>> {
+        -idTarea: Entero
+        -estado: Enum
+        -ejecutor: Enum
+    }
+    class DelegacionTemporal extends Tarea
+    class RevisionAnual extends Tarea
+    class DisputaDeuda extends Tarea
+    class IncidenciaFacturacion extends Tarea
+    class SolicitudAprobacion extends Tarea
+
+    enum TipoMovimiento <<enumeration>> {
+        ALTA_CLIENTE
+        BAJA_CLIENTE
+        ALTA_USUARIO
+        BAJA_USUARIO
+        ASIGNACION_CLIENTE
+        DESASIGNACION_CLIENTE
+        EMISION_FACTURA
+        RECTIFICACION_FACTURA
+        CIERRE_PERIODO
+        REGISTRO_COBRO
+        REGISTRO_TAREA
+        APLICACION_EXCEPCION
+    }
+
+    class Movimiento <<entity>> {
+        -idMovimiento: Entero
+        -fechaHora: FechaHora
+        -tipo: TipoMovimiento
+        -entidadAfectada: Texto
+        -idEntidadAfectada: Texto
+        -detalle: Texto
+        -usuario: Usuario
+        +Movimiento(tipo: TipoMovimiento, usuario: Usuario, entidad: Texto, idEntidad: Texto, detalle: Texto)
+        +Movimiento(tipo: TipoMovimiento, entidad: Texto, idEntidad: Texto, detalle: Texto)
+    }
+
+    enum TipoAccionAuditoria <<enumeration>> {
+        ALTA
+        MODIFICACION
+        EMISION
+        CONCILIACION
+        REASIGNACION
+        CIERRE_PERIODO
+    }
+
+    class RegistroAuditoria extends Movimiento {
+        -tablaAfectada: Texto
+        -idRegistroAfectado: Texto
+        -tipoAccion: TipoAccionAuditoria
+        -valorAnterior: JSON
+        -valorNuevo: JSON
+    }
+
+    enum CanalNotificacion <<enumeration>> {
+        CORREO
+        WHATSAPP
+    }
+
+    enum EstadoEnvio <<enumeration>> {
+        EN_COLA
+        ENVIADO
+        FALLIDO_REBOTADO
+        REINTENTADO
+    }
+
+    enum TipoMensaje <<enumeration>> {
+        FACTURA
+        RECORDATORIO
+        AVISO_IMPAGO
+    }
+
+    class EnvioComunicacion extends Movimiento {
+        -tipoMensaje: TipoMensaje
+        -canal: CanalNotificacion
+        -estadoEnvio: EstadoEnvio
+        -numeroIntento: Entero
+        -contactoDestinatario: Contacto
+        -factura: Factura
+        +marcarEnviado(): Void
+        +marcarRebotado(): Void
+        +reintentar(): Booleano
+    }
+
+    enum EstadoImportacion <<enumeration>> {
+        EXITOSA
+        PARCIAL
+        FALLIDA
+    }
+
+    class ImportacionCSV extends Movimiento {
+        -nombreArchivo: Texto
+        -filasTotales: Entero
+        -filasCorrectas: Entero
+        -filasConError: Entero
+        -estadoImportacion: EstadoImportacion
+        -rutaInformeErrores: Texto
+    }
+
+    abstract class Notificacion <<entity>> {
+        -idNotificacion: Entero
+        -asunto: Texto
+    }
+    class Correo extends Notificacion
+    class WhatsApp extends Notificacion
+    class NotificacionUsuario extends Notificacion
+
+    Cliente "1" *-- "1" Suscripcion
+    Cliente "1" o-- "0..*" Factura
+    GestorTrabajo ..> Tarea
+    GestorMovimientos ..> Movimiento
+}
+@enduml
