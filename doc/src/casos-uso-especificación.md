@@ -606,7 +606,7 @@ Flujos alternativos:
 
 **1º Flujo de cancelación:** El usuario cancela la creación antes de guardar y el sistema descarta el borrador.
 
-**2º Emitir en el momento:** Al terminar, el usuario decide emitir la factura directamente. Se continúa con el CU-13, que extiende a este caso de uso.
+**2º Emitir en el momento:** Al terminar, el usuario decide emitir la factura directamente. La emisión se resuelve con el CU-13, que este caso de uso incluye.
 
 **3º Editar un borrador existente:** El usuario abre un borrador guardado anteriormente, lo modifica y vuelve a guardarlo.
 
@@ -660,7 +660,7 @@ Flujos alternativos:
 
 **2º Doble clic o emisión simultánea:** Si el usuario pulsa varias veces o dos personas emiten la misma factura a la vez, el sistema indica que ya se está procesando y no duplica ni la factura ni el número.
 
-**3º Fallo en el envío:** La factura queda emitida pero sin enviar, y el envío puede reintentarse sin generar otro número. Si el correo rebota, se continúa con el CU-17, que extiende a este caso de uso.
+**3º Fallo en el envío:** La factura queda emitida pero sin enviar, y el envío puede reintentarse sin generar otro número. Si el correo rebota, se abre el CU-17, que es un flujo de excepción independiente y no extiende a este caso de uso.
 
 **Postcondiciones:**
 
@@ -792,7 +792,7 @@ Flujos alternativos:
 
 **CU-17: Resolver un envío fallido:**
 
-**Objetivo:** Describir cómo el responsable de un cliente consigue entregar una factura cuyo envío falló o cuyo correo rebotó, sin crear una factura nueva. Este caso de uso extiende al CU-13.
+**Objetivo:** Describir cómo el responsable de un cliente consigue entregar una factura cuyo envío falló o cuyo correo rebotó, sin crear una factura nueva. No extiende al CU-13: es un flujo de excepción independiente que se activa cuando falla el envío de una factura ya emitida.
 
 **Actores:** AD, SA y UO (responsable del cliente)
 

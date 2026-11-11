@@ -56,6 +56,7 @@ package "Capa Control (Gestores)" {
     class GestorTrabajo <<control>>
     class GestorInformes <<control>>
     class GestorSistema <<singleton, control>>
+    class GestorEmpleados <<control>>
     class GestorMovimientos <<control>> {
         +registrarMovimiento(tipo: TipoMovimiento, usuario: Usuario, entidad: Texto, idEntidad: Texto, detalle: Texto): Movimiento
         +registrarAuditoria(tabla: Texto, idRegistro: Texto, accion: TipoAccionAuditoria, usuario: Usuario, anterior: JSON, nuevo: JSON): RegistroAuditoria
@@ -96,10 +97,12 @@ package "Capa Dominio (Entidades)" {
     class Concepto <<entity>> {
         -idConcepto: Entero
         -nombre: Texto
-        -descripcionPorDefecto: Texto
-        -precioBase: Decimal
-        -impuestoPorDefecto: Decimal
-        -activo: Booleano
+        -descripcion: Texto
+        -cantidad: Entero
+        -precioUnitario: Decimal
+        -descuento: Decimal
+        -impuesto: Decimal
+        -subtotal: Decimal
     }
 
     abstract class Factura <<entity>> {
@@ -112,6 +115,32 @@ package "Capa Dominio (Entidades)" {
     class FacturaRecurrente extends Factura
     class FacturaPuntual extends Factura
     class FacturaRectificativa extends Factura
+
+    class Cobro <<entity>> {
+        -idCobro: Entero
+        -fecha: FechaHora
+        -importe: Decimal
+        -metodo: Texto
+        -referenciaStripe: Texto
+        -estado: Enum
+    }
+
+    class Conciliacion <<entity>> {
+        -idConciliacion: Entero
+        -fecha: FechaHora
+        -estado: Enum
+        -diferencia: Decimal
+        -tipoDiferencia: Texto
+    }
+
+    class ExcepcionComercial <<entity>> {
+        -idExcepcion: Entero
+        -tipo: Texto
+        -motivo: Texto
+        -importe: Decimal
+        -aprobadaPor: Usuario
+        -fecha: FechaHora
+    }
 
     Factura "1" o-- "1..*" Concepto : conceptos
 
@@ -223,9 +252,21 @@ package "Capa Dominio (Entidades)" {
     class WhatsApp extends Notificacion
     class NotificacionUsuario extends Notificacion
 
+    class DocumentoExportado <<entity>> {
+        -idDocumento: Entero
+        -tipo: Texto
+        -ruta: Texto
+        -fechaGeneracion: FechaHora
+    }
+
     Cliente "1" *-- "1" Suscripcion
     Cliente "1" o-- "0..*" Factura
     GestorTrabajo ..> Tarea
     GestorMovimientos ..> Movimiento
+    GestorInformes --> DocumentoExportado : genera
+
+    Cliente "1" o-- "0..*" Cobro : recibe
+    Conciliacion "1" o-- "0..*" Cobro : concilia
+    ExcepcionComercial "1" -- "1" Cliente : afecta a
 }
 @enduml
