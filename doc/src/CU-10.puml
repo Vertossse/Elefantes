@@ -1,0 +1,303 @@
+@startuml CU-10
+skinparam style strictuml
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam nodesep 20
+skinparam ranksep 40
+title CU-10 - Solicitud de una excepción comercial
+
+package "Interfaz" {
+  class VentanaSuscripcion <<boundary>> {
+    + mostrarSuscripcion(suscripcion: Suscripcion)
+    + mostrarTiposExcepcion()
+    + seleccionarTipoExcepcion(tipo: TipoExcepcion)
+    + introducirDatosExcepcion(valor: double, inicio: Date, fin: Date, motivo: String)
+    + mostrarResumenEfecto(importe: double)
+    + mostrarErrorValidacion(mensaje: String)
+    + confirmar()
+    + cancelar()
+  }
+}
+
+package "Control" {
+  class GestorSuscripciones <<control>> {
+    + obtenerSuscripcion(cliente: Cliente): Suscripcion
+    + solicitarExcepcionComercial(suscripcion: Suscripcion, tipo: TipoExcepcion, valor: double, vigenteDesde: Date, vigenteHasta: Date, motivo: String, solicitante: Usuario): SolicitudAprobacion
+    + calcularEfecto(suscripcion: Suscripcion, excepcion: ExcepcionComercial): double
+  }
+
+  class GestorAprobaciones <<control>> {
+    + determinarAprobador(solicitud: SolicitudAprobacion): Usuario
+    + asignarAprobador(solicitud: SolicitudAprobacion, aprobador: Usuario)
+    + registrarSolicitud(solicitud: SolicitudAprobacion)
+    + notificarAprobador(solicitud: SolicitudAprobacion)
+  }
+
+  class GestorClientes <<control>> {
+    + obtenerClientePorNif(nif: String): Cliente
+  }
+
+  class GestorMovimientos <<control>> {
+    + registrarAuditoria(tabla: String, idRegistro: String, accion: TipoAccionAuditoria, usuario: Usuario, valorAnterior: JSON, valorNuevo: JSON)
+  }
+
+  class AutenticadorValidador <<static>> {
+    + comprobarPermiso(usuario: Usuario, operacion: String, cliente: Cliente): boolean
+    + comprobarSeparacionFunciones(solicitante: Usuario, aprobador: Usuario): boolean
+    + validarImporteEnUmbral(importe: double, umbral: double): boolean
+  }
+}
+
+package "Dominio" {
+  abstract class Usuario <<entity>> {
+    - idUsuario: int
+    - emailCorporativo: String
+    - nombreCompleto: String
+    - estadoCuenta: EstadoUsuario
+    + puedeAcceder(cliente: Cliente): boolean
+  }
+
+  class UsuarioOperativo <<entity>> {
+    - carteraClientes: List<Cliente>
+    - puedeDarAltaClientes: boolean
+  }
+
+  class Administrador <<entity>> {
+    - umbralAprobacion: double
+  }
+
+  class SuperAdministrador <<entity>>
+
+  class Cliente <<entity>> {
+    - nifCif: String
+    - nombreComercial: String
+    - razonSocial: String
+    - domicilioFiscal: String
+    - pais: String
+    - moneda: String
+    - estado: EstadoCliente
+    - fechaAlta: Date
+    - fechaBajaEfectiva: Date
+    - motivoBaja: String
+    - suscripcion: Suscripcion
+    + tieneDatosFiscalesCompletos(): boolean
+    + estaActivo(): boolean
+  }
+
+  class Suscripcion <<entity>> {
+    - idSuscripcion: int
+    - fechaInicio: Date
+    - planContratado: String
+    - tarifaAcordada: double
+    - estado: EstadoSuscripcion
+    - excepcionSinProrrateo: boolean
+    - tarifa: TarifaRango
+    - responsableComercial: Usuario
+    - excepcionComercial: ExcepcionComercial
+    + calcularProrrateoPrimerMes(): double
+    + debeFacturarse(mes: Date): boolean
+    + aplicarNuevaTarifa(tarifa: TarifaRango, fechaEfecto: Date)
+  }
+
+  class TarifaRango <<entity>> {
+    - idTarifa: int
+    - facturacionAnualMinima: double
+    - facturacionAnualMaxima: double
+    - importeMensualBase: double
+    - vigenteDesde: Date
+    - vigenteHasta: Date
+    + aplicaA(facturacionAnual: double): boolean
+    + esValidaEn(fecha: Date): boolean
+  }
+
+  abstract class Tarea <<entity>> {
+    - idTarea: int
+    - estado: EstadoTarea
+    - fechaCreacion: DateTime
+    - fechaFin: Date
+    - ejecutor: EjecutorTarea
+    + atender(usuario: Usuario)
+    + aplazar(fecha: Date)
+  }
+
+  class ExcepcionComercial <<entity>> {
+    - idExcepcion: int
+    - tipo: TipoExcepcion
+    - valor: double
+    - vigenteDesde: Date
+    - vigenteHasta: Date
+    + estaVigente(fecha: Date): boolean
+    + solicitarAprobacion(cliente: Cliente): SolicitudAprobacion
+    + recibirResolucion(solicitud: SolicitudAprobacion)
+  }
+
+  class SolicitudAprobacion <<entity>> {
+    - idSolicitud: int
+    - tipoOperacion: TipoOperacionAprobacion
+    - valorSolicitado: double
+    - motivo: String
+    - resolucion: ResolucionSolicitud
+    - fechaResolucion: DateTime
+    - cliente: Cliente
+    - solicitante: Usuario
+    - aprobador: Usuario
+    + requiereAprobacion(umbral: double): boolean
+    + estaPendiente(): boolean
+    + aprobar(aprobador: Usuario)
+    + rechazar(aprobador: Usuario, motivo: String)
+  }
+
+  enum TipoExcepcion {
+    DescuentoTemporal
+    PrimerMesGratis
+    PrecioPactado
+    SinProrrateo
+  }
+
+  enum TipoOperacionAprobacion {
+    DescuentoTemporal
+    PrimerMesGratis
+    PrecioPactado
+    RectificativaAlta
+    CondonacionDeuda
+    FacturaPuntualAlta
+  }
+
+  enum ResolucionSolicitud {
+    Aprobada
+    Rechazada
+  }
+
+  enum EstadoTarea {
+    Pendiente
+    Atendida
+    Cancelada
+  }
+
+  enum EjecutorTarea {
+    Usuario
+    Sistema
+  }
+
+  enum EstadoSuscripcion {
+    Activa
+    Pausada
+    ProgramadaFutura
+    Cancelada
+  }
+
+  enum EstadoCliente {
+    Activo
+    BajaLogica
+    PendienteActivacion
+  }
+
+  enum EstadoUsuario {
+    Activo
+    Deshabilitado
+  }
+
+  enum TipoAccionAuditoria {
+    Alta
+    Modificacion
+    Emision
+    Conciliacion
+    Reasignacion
+    CierrePeriodo
+  }
+}
+
+package "Persistencia" {
+  interface Repositorio<T> {
+    + guardar(entidad: T)
+    + buscarPorId(id: int): T
+    + buscar(filtro: Filtro<T>): List<T>
+    + eliminar(entidad: T)
+  }
+
+  interface Filtro<T> {
+    + criterios(): Map<String, String>
+    + orden(): String
+  }
+
+  class RepositorioSolicitudesAprobacion {
+    + buscarPendientesPorAprobador(aprobador: Usuario): List<SolicitudAprobacion>
+    + buscarPorCliente(cliente: Cliente): List<SolicitudAprobacion>
+  }
+
+  class RepositorioSuscripciones {
+    + buscarPorCliente(cliente: Cliente): Suscripcion
+  }
+
+  class RepositorioClientes {
+    + buscarPorNif(nif: String): Cliente
+  }
+
+  class RepositorioUsuarios {
+    + buscarAdministradores(): List<Administrador>
+    + buscarSuperadministradores(): List<SuperAdministrador>
+  }
+
+}
+
+' Layout de paquetes
+AutenticadorValidador -[hidden]down-> Repositorio
+
+' Layout de control
+GestorAprobaciones -[hidden]down-> GestorMovimientos
+GestorClientes -[hidden]down-> GestorSuscripciones
+GestorSuscripciones -[hidden]down-> GestorAprobaciones
+GestorMovimientos -[hidden]down-> AutenticadorValidador
+
+' Interfaz a control
+VentanaSuscripcion ..> GestorSuscripciones : delega
+
+' Dependencias de control
+GestorSuscripciones ..> GestorClientes : carga cliente
+GestorSuscripciones ..> GestorAprobaciones : registra solicitud
+GestorSuscripciones ..> RepositorioSuscripciones : persiste
+GestorSuscripciones ..> ExcepcionComercial : crea
+GestorSuscripciones ..> AutenticadorValidador : comprueba permiso
+GestorSuscripciones ..> GestorMovimientos : audita
+
+GestorAprobaciones ..> RepositorioSolicitudesAprobacion : persiste
+GestorAprobaciones ..> RepositorioUsuarios : busca aprobador
+GestorAprobaciones ..> AutenticadorValidador : valida umbral y separación
+GestorAprobaciones ..> GestorMovimientos : audita
+
+GestorClientes ..> RepositorioClientes : persiste
+
+' Persistencia
+Repositorio ..> Filtro : filtra por
+Repositorio <|.. RepositorioSolicitudesAprobacion
+Repositorio <|.. RepositorioSuscripciones
+Repositorio <|.. RepositorioClientes
+Repositorio <|.. RepositorioUsuarios
+
+' Dominio
+Cliente "1" *-- "1" Suscripcion : formaliza
+Suscripcion "1" *-- "0..*" ExcepcionComercial : contiene
+Suscripcion "0..*" --> "1" TarifaRango : tarifada por
+Suscripcion "0..*" --> "1" Usuario : responsable comercial
+
+SolicitudAprobacion "0..*" --> "1" Cliente : para
+SolicitudAprobacion "0..*" --> "1" Usuario : solicitante
+SolicitudAprobacion "0..*" --> "0..1" Usuario : aprobador
+
+ExcepcionComercial ..> SolicitudAprobacion : solicita aprobación
+
+Tarea <|-- SolicitudAprobacion
+Usuario <|-- UsuarioOperativo
+Usuario <|-- Administrador
+Administrador <|-- SuperAdministrador
+
+Cliente ..> EstadoCliente : estado
+Suscripcion ..> EstadoSuscripcion : estado
+ExcepcionComercial ..> TipoExcepcion : tipo
+SolicitudAprobacion ..> TipoOperacionAprobacion : tipoOperacion
+SolicitudAprobacion ..> ResolucionSolicitud : resolucion
+Tarea ..> EstadoTarea : estado
+Tarea ..> EjecutorTarea : ejecutor
+Usuario ..> EstadoUsuario : estado
+
+@enduml

@@ -1,0 +1,116 @@
+@startuml SEC-09
+skinparam style strictuml
+skinparam maxMessageSize 180
+autonumber
+title SEC-09 - Revisión anual del rango de un cliente
+
+actor "Usuario\n(AD / SA)" as Usuario
+actor "Aprobador\n(AD / SA)" as Aprobador
+boundary "VentanaRevisionesAnuales" as VR
+boundary "VentanaAprobacion" as VA
+control "GestorRevisionesAnuales" as GRA
+control "GestorTarifas" as GT
+control "GestorClientes" as GC
+control "GestorSuscripciones" as GS
+control "AutenticadorValidador" as AV
+control "GestorMovimientos" as GM
+entity "Cliente" as Cliente
+entity "RevisionAnual" as Revision
+entity "TarifaRango" as Tarifa
+entity "Suscripcion" as Suscripcion
+database "RepositorioRevisionesAnuales" as RRA
+database "RepositorioTarifas" as RT
+database "RepositorioSuscripciones" as RS
+database "RepositorioClientes" as RC
+
+Usuario -> VR : abrir revisiones anuales
+VR -> GRA : listarPendientes()
+GRA -> RRA : buscarPendientes()
+RRA --> GRA : revisiones
+GRA --> VR : revisiones
+VR --> Usuario : mostrarPendientes(revisiones)
+
+Usuario -> VR : seleccionar cliente
+VR -> GC : obtenerClientePorNif(nif)
+GC -> RC : buscarPorNif(nif)
+RC --> GC : cliente
+GC --> VR : cliente
+VR --> Usuario : solicitarFacturacionVerificada()
+
+Usuario -> VR : introducir facturación anual verificada
+VR -> GRA : iniciarRevision(cliente, solicitante)
+GRA -> AV : comprobarPermiso(usuario, "revisarRango", cliente)
+AV --> GRA : boolean
+
+alt Sin permiso
+  GRA --> VR : error de permisos
+  VR --> Usuario : mostrarErrorValidacion(mensaje)
+else Permiso concedido
+  GRA -> Revision : crear(cliente, solicitante)
+  GRA -> GRA : registrarFacturacion(revision, facturacionVerificada)
+  GRA -> GT : obtenerTarifasVigentes(fechaRevision)
+  GT -> RT : buscarVigentes(fechaRevision)
+  RT --> GT : tarifas
+  GT --> GRA : tarifas
+  GRA -> Revision : calcularTarifaPropuesta(tarifas)
+  Revision --> GRA : tarifaCalculada
+  alt Se mantiene el mismo tramo
+    GRA -> Revision : mantener()
+    GRA -> RRA : guardar(revision)
+    GRA -> GM : registrarAuditoria("RevisionAnual", idRevision, Modificacion, usuario, null, Mantenida)
+    GM --> GRA : registrado
+    GRA --> VR : revisión mantenida
+    VR --> Usuario : confirmación sin cambio de precio
+  else Cambio de tramo
+    GRA -> RRA : guardar(revision)
+    GRA -> GM : registrarAuditoria("RevisionAnual", idRevision, Alta, usuario, null, Pendiente)
+    GRA --> VR : propuesta
+    VR --> Usuario : mostrarPropuesta(tarifaAnterior, tarifaCalculada)
+    note right of VR
+      La propuesta queda pendiente de aprobación.
+      El precio no cambia hasta que se apruebe.
+    end note
+  end
+end
+
+Aprobador -> VA : abrir revisión pendiente
+VA --> Aprobador : mostrarRevision(revision)
+Aprobador -> VA : aprobar()
+VA -> GRA : aprobarRevision(revision, aprobador, tarifaCalculada)
+GRA -> AV : comprobarPermiso(aprobador, "aprobarRevision", cliente)
+AV --> GRA : boolean
+alt Sin permiso
+  GRA --> VA : error de permisos
+  VA --> Aprobador : mostrarError(mensaje)
+else Permiso concedido
+  GRA -> AV : comprobarSeparacionFunciones(solicitante, aprobador)
+  AV --> GRA : boolean
+  alt Autoaprobación no permitida
+    GRA --> VA : error de separación de funciones
+    VA --> Aprobador : mostrarError(mensaje)
+  else Separación válida
+    GRA -> Revision : aprobar(aprobador, tarifaCalculada)
+    GRA -> GS : aplicarNuevaTarifa(suscripcion, tarifaCalculada, fechaEfecto)
+    GS -> Suscripcion : aplicarNuevaTarifa(tarifaCalculada, fechaEfecto)
+    GS -> RS : guardar(suscripcion)
+    GRA -> RRA : guardar(revision)
+    GRA -> GM : registrarAuditoria("RevisionAnual", idRevision, Modificacion, aprobador, precioAnterior, precioNuevo)
+    GM --> GRA : registrado
+    GRA --> VA : revisión aprobada
+    VA --> Aprobador : confirmación
+  end
+end
+
+opt Rechazo del cambio de rango
+  Aprobador -> VA : rechazar(motivo)
+  VA -> GRA : rechazarRevision(revision, aprobador, motivo)
+  GRA -> AV : comprobarPermiso(aprobador, "rechazarRevision", cliente)
+  GRA -> AV : comprobarSeparacionFunciones(solicitante, aprobador)
+  GRA -> Revision : rechazar(aprobador)
+  GRA -> RRA : guardar(revision)
+  GRA -> GM : registrarAuditoria("RevisionAnual", idRevision, Modificacion, aprobador, Pendiente, Rechazada)
+  GRA --> VA : revisión rechazada
+  VA --> Aprobador : confirmación y tarifa anterior mantenida
+end
+
+@enduml

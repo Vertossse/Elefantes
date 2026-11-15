@@ -1,0 +1,291 @@
+@startuml CU-19
+skinparam style strictuml
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam nodesep 20
+skinparam ranksep 40
+title CU-19 - Gestión de una disputa
+
+package "Interfaz" {
+  class FichaCliente <<boundary>> {
+    + mostrarCliente(cliente: Cliente)
+    + mostrarFacturas(facturas: List<Factura>)
+    + abrirDisputa(factura: Factura)
+  }
+
+  class VentanaDisputa <<boundary>> {
+    + mostrarFactura(factura: Factura)
+    + introducirMotivo(motivo: String)
+    + introducirFechaRevision(fecha: Date)
+    + confirmar()
+    + cancelar()
+    + mostrarError(mensaje: String)
+  }
+}
+
+package "Control" {
+  class GestorCobros <<control>> {
+    + abrirDisputa(factura: Factura, motivo: String, fechaRevision: Date, usuario: Usuario): DisputaDeuda
+    + cerrarDisputa(disputa: DisputaDeuda, usuario: Usuario)
+    + cancelarDeuda(factura: Factura, motivo: String, usuario: Usuario): SolicitudAprobacion
+    + declararIncobrable(factura: Factura, motivo: String, usuario: Usuario): SolicitudAprobacion
+  }
+
+  class GestorFacturas <<control>> {
+    + obtenerFactura(id: int): Factura
+    + listarPorCliente(cliente: Cliente): List<Factura>
+  }
+
+  class GestorClientes <<control>> {
+    + obtenerClientePorNif(nif: String): Cliente
+  }
+
+  class GestorAprobaciones <<control>> {
+    + solicitar(tipo: TipoOperacionAprobacion, factura: Factura, motivo: String, solicitante: Usuario): SolicitudAprobacion
+    + listarPendientes(usuario: Usuario): List<SolicitudAprobacion>
+  }
+
+  class AutenticadorValidador <<static>> {
+    + comprobarPermiso(usuario: Usuario, operacion: String, cliente: Cliente): boolean
+    + validarMotivo(motivo: String): boolean
+  }
+
+  class GestorMovimientos <<control>> {
+    + registrarAuditoria(tabla: String, idRegistro: String, accion: TipoAccionAuditoria, usuario: Usuario, valorAnterior: JSON, valorNuevo: JSON)
+  }
+}
+
+package "Dominio" {
+  abstract class Usuario <<entity>> {
+    - idUsuario: int
+    - emailCorporativo: String
+    - nombreCompleto: String
+    - estadoCuenta: EstadoUsuario
+    + puedeAcceder(cliente: Cliente): boolean
+  }
+
+  class UsuarioOperativo <<entity>> {
+    - carteraClientes: List<Cliente>
+    - puedeDarAltaClientes: boolean
+  }
+
+  class Administrador <<entity>> {
+    - umbralAprobacion: double
+  }
+
+  class Cliente <<entity>> {
+    - nifCif: String
+    - nombreComercial: String
+    - razonSocial: String
+    - estado: EstadoCliente
+    - facturas: List<Factura>
+    + estaActivo(): boolean
+  }
+
+  abstract class Factura <<entity>> {
+    - idFactura: int
+    - numeroSerieCompleto: String
+    - estado: EstadoFactura
+    - fechaEmision: Date
+    - fechaVencimiento: Date
+    - total: double
+    + estaPendiente(): boolean
+    + marcarPagada()
+    + marcarIncobrable()
+    + esEditable(): boolean
+  }
+
+  abstract class Tarea <<entity>> {
+    - idTarea: int
+    - estado: EstadoTarea
+    - fechaCreacion: DateTime
+    - fechaFin: Date
+    - ejecutor: EjecutorTarea
+    + atender(usuario: Usuario)
+    + aplazar(fecha: Date)
+  }
+
+  class DisputaDeuda <<entity>> {
+    - idDisputa: int
+    - motivoReclamacion: String
+    - fechaRevisionPrevista: Date
+    - recordatoriosCongelados: boolean
+    - factura: Factura
+    - cliente: Cliente
+    - empleado: Usuario
+    + cerrar(usuario: Usuario)
+    + congelarRecordatorios()
+  }
+
+  class SolicitudAprobacion <<entity>> {
+    - idSolicitud: int
+    - tipoOperacion: TipoOperacionAprobacion
+    - valorSolicitado: double
+    - motivo: String
+    - resolucion: ResolucionSolicitud
+    - fechaResolucion: DateTime
+    - cliente: Cliente
+    - factura: Factura
+    - solicitante: Usuario
+    - aprobador: Usuario
+    + requiereAprobacion(umbral: double): boolean
+    + estaPendiente(): boolean
+    + aprobar(aprobador: Usuario, comentario: String)
+    + rechazar(aprobador: Usuario, motivo: String)
+  }
+
+  enum EstadoFactura {
+    Borrador
+    Emitida
+    Pagada
+    Rectificada
+    Incobrable
+    Anulada
+  }
+
+  enum EstadoCliente {
+    Activo
+    BajaLogica
+    PendienteActivacion
+  }
+
+  enum EstadoTarea {
+    Pendiente
+    Atendida
+    Cancelada
+  }
+
+  enum EjecutorTarea {
+    Usuario
+    Sistema
+  }
+
+  enum EstadoUsuario {
+    Activo
+    Deshabilitado
+  }
+
+  enum TipoOperacionAprobacion {
+    DescuentoTemporal
+    PrimerMesGratis
+    PrecioPactado
+    RectificativaAlta
+    CondonacionDeuda
+    FacturaPuntualAlta
+  }
+
+  enum ResolucionSolicitud {
+    Aprobada
+    Rechazada
+  }
+
+  enum TipoAccionAuditoria {
+    Alta
+    Modificacion
+    Emision
+    Conciliacion
+    Reasignacion
+    CierrePeriodo
+  }
+}
+
+package "Persistencia" {
+  interface Repositorio<T> {
+    + guardar(entidad: T)
+    + buscarPorId(id: int): T
+    + buscar(filtro: Filtro<T>): List<T>
+    + eliminar(entidad: T)
+  }
+
+  interface Filtro<T> {
+    + criterios(): Map<String, String>
+    + orden(): String
+  }
+
+  class RepositorioDisputas {
+    + buscarPorFactura(factura: Factura): List<DisputaDeuda>
+    + buscarAbiertasPorCliente(cliente: Cliente): List<DisputaDeuda>
+  }
+
+  class RepositorioFacturas {
+    + buscarPorCliente(cliente: Cliente): List<Factura>
+    + buscarPorId(id: int): Factura
+  }
+
+  class RepositorioSolicitudesAprobacion {
+    + buscarPendientesPorAprobador(aprobador: Usuario): List<SolicitudAprobacion>
+    + buscarPorFactura(factura: Factura): List<SolicitudAprobacion>
+  }
+
+  class RepositorioClientes {
+    + buscarPorNif(nif: String): Cliente
+  }
+}
+
+' Layout
+GestorCobros -[hidden]down-> Repositorio
+AutenticadorValidador -[hidden]down-> Repositorio
+FichaCliente -[hidden]down-> VentanaDisputa
+
+' Persistencia en columna para reducir el ancho
+RepositorioDisputas -[hidden]down-> RepositorioFacturas
+RepositorioFacturas -[hidden]down-> RepositorioSolicitudesAprobacion
+RepositorioSolicitudesAprobacion -[hidden]down-> RepositorioClientes
+
+' Interfaz a control
+FichaCliente ..> GestorClientes : consulta
+FichaCliente ..> GestorFacturas : lista facturas
+VentanaDisputa ..> GestorCobros : registra
+
+' Dependencias de control
+GestorCobros ..> RepositorioDisputas : persiste
+GestorCobros ..> RepositorioFacturas : actualiza
+GestorCobros ..> RepositorioSolicitudesAprobacion : registra
+GestorCobros ..> GestorAprobaciones : solicita aprobación
+GestorCobros ..> AutenticadorValidador : valida permiso y motivo
+GestorCobros ..> GestorMovimientos : audita
+GestorCobros ..> DisputaDeuda : crea
+GestorCobros ..> Factura : congela
+
+GestorFacturas ..> RepositorioFacturas : persiste
+GestorClientes ..> RepositorioClientes : persiste
+GestorAprobaciones ..> RepositorioSolicitudesAprobacion : persiste
+GestorMovimientos ..> TipoAccionAuditoria : usa
+
+' Persistencia
+Repositorio ..> Filtro : filtra por
+Repositorio <|.. RepositorioDisputas
+Repositorio <|.. RepositorioFacturas
+Repositorio <|.. RepositorioSolicitudesAprobacion
+Repositorio <|.. RepositorioClientes
+RepositorioDisputas ..> DisputaDeuda : almacena
+RepositorioFacturas ..> Factura : almacena
+RepositorioSolicitudesAprobacion ..> SolicitudAprobacion : almacena
+RepositorioClientes ..> Cliente : almacena
+
+' Dominio
+Cliente "1" --> "0..*" Factura : facturas
+
+Factura "1" --> "0..*" DisputaDeuda : disputas
+DisputaDeuda "0..*" --> "1" Cliente : cliente
+DisputaDeuda "0..*" --> "1" Usuario : empleado
+
+SolicitudAprobacion "0..*" --> "1" Cliente : para
+SolicitudAprobacion "0..*" --> "1" Factura : afecta a
+SolicitudAprobacion "0..*" --> "1" Usuario : solicitante
+SolicitudAprobacion "0..*" --> "0..1" Usuario : aprobador
+
+Tarea <|-- DisputaDeuda
+Tarea <|-- SolicitudAprobacion
+Usuario <|-- UsuarioOperativo
+Usuario <|-- Administrador
+
+Factura ..> EstadoFactura : estado
+Cliente ..> EstadoCliente : estado
+Tarea ..> EstadoTarea : estado
+Tarea ..> EjecutorTarea : ejecutor
+Usuario ..> EstadoUsuario : estado
+SolicitudAprobacion ..> TipoOperacionAprobacion : tipoOperacion
+SolicitudAprobacion ..> ResolucionSolicitud : resolucion
+
+@enduml

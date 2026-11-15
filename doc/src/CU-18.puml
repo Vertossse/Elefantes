@@ -1,0 +1,321 @@
+@startuml CU-18
+skinparam style strictuml
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam nodesep 20
+skinparam ranksep 40
+title CU-18 - Recordatorios y avisos de impago automáticos
+
+package "Control" {
+  class Reloj <<singleton>> {
+    + iniciar()
+    + programar(proceso: String, frecuencia: String)
+    + tic()
+  }
+
+  class GestorCobros <<control>> {
+    + enviarRecordatorios(fecha: Date)
+    + determinarTipoAviso(factura: Factura, fecha: Date): TipoMensaje
+    + calcularFechaEnvio(fecha: Date): Date
+    + seleccionarContacto(cliente: Cliente, tipo: TipoMensaje): Contacto
+    + listarImpagos(): List<Factura>
+  }
+
+  class GestorSistema <<control>> {
+    + obtenerAjustes(): AjustesSistema
+  }
+
+  class GestorTrabajo <<control>> {
+    + enviarNotificacion(notificacion: Notificacion, factura: Factura, contacto: Contacto, tipo: TipoMensaje): EnvioComunicacion
+  }
+}
+
+package "Dominio" {
+  class Cliente <<entity>> {
+    - nifCif: String
+    - nombreComercial: String
+    - razonSocial: String
+    - estado: EstadoCliente
+    - facturas: List<Factura>
+    - contactos: List<Contacto>
+    + estaActivo(): boolean
+    + tieneContactoFacturacion(): boolean
+    + obtenerContacto(rol: RolContacto): Contacto
+  }
+
+  class Contacto <<entity>> {
+    - idContacto: int
+    - nombreCompleto: String
+    - email: String
+    - telefono: String
+    - rolContacto: RolContacto
+    - consentimientoEmail: boolean
+    - consentimientoWhatsapp: boolean
+    - estado: EstadoContacto
+    + admiteCanal(canal: CanalNotificacion): boolean
+    + desactivar()
+    + anonimizar()
+  }
+
+  abstract class Factura <<entity>> {
+    - idFactura: int
+    - numeroSerieCompleto: String
+    - serie: String
+    - numeroSecuencial: int
+    - estado: EstadoFactura
+    - fechaEmision: Date
+    - fechaVencimiento: Date
+    - moneda: String
+    - subtotal: double
+    - impuestos: double
+    - total: double
+    - cliente: Cliente
+    + estaPendiente(): boolean
+    + estaVencida(fecha: Date): boolean
+    + diasDesdeEmision(fecha: Date): int
+    + diasDesdeVencimiento(fecha: Date): int
+    + marcarPagada()
+    + marcarIncobrable()
+    + esEditable(): boolean
+  }
+
+  abstract class Tarea <<entity>> {
+    - idTarea: int
+    - estado: EstadoTarea
+    - fechaCreacion: DateTime
+    - fechaFin: Date
+    - ejecutor: EjecutorTarea
+    + atender(usuario: Usuario)
+    + aplazar(fecha: Date)
+  }
+
+  class DisputaDeuda <<entity>> {
+    - idDisputa: int
+    - motivoReclamacion: String
+    - fechaRevisionPrevista: Date
+    - recordatoriosCongelados: boolean
+    - factura: Factura
+    - cliente: Cliente
+    - empleado: Usuario
+    + cerrar(usuario: Usuario)
+    + congelarRecordatorios()
+  }
+
+  abstract class Usuario <<entity>> {
+    - idUsuario: int
+    - emailCorporativo: String
+    - nombreCompleto: String
+    - estadoCuenta: EstadoUsuario
+    + puedeAcceder(cliente: Cliente): boolean
+  }
+
+  abstract class Notificacion <<entity>> {
+    - idNotificacion: int
+    - asunto: String
+    - texto: String
+    - fecha: DateTime
+    - usuarioDestinatario: Usuario
+  }
+
+  class Correo <<entity>> {
+    - emailDestino: String
+  }
+
+  class WhatsApp <<entity>> {
+    - telefonoDestino: String
+  }
+
+  class NotificacionUsuario <<entity>> {
+    - leida: boolean
+    + marcarLeida()
+  }
+
+  abstract class Movimiento <<entity>> {
+    - idMovimiento: int
+    - fechaHora: DateTime
+    - usuario: Usuario
+    - detalle: String
+  }
+
+  class EnvioComunicacion <<entity>> {
+    - tipoMensaje: TipoMensaje
+    - estado: EstadoEnvio
+    - esReintento: boolean
+    - numeroIntento: int
+    - notificacion: Notificacion
+    - factura: Factura
+    - contacto: Contacto
+    + marcarEnviado()
+    + marcarRebotado()
+    + reintentar()
+  }
+
+  class AjustesSistema <<singleton>> {
+    - clave: String
+    - valor: String
+    - tipo: String
+    - fechaEfecto: Date
+    - estado: EstadoAjuste
+    + obtener(clave: String): String
+    + esLaborable(fecha: Date): boolean
+    + siguienteDiaLaborable(fecha: Date): Date
+  }
+
+  enum EstadoFactura {
+    Borrador
+    Emitida
+    Pagada
+    Rectificada
+    Incobrable
+    Anulada
+  }
+
+  enum EstadoCliente {
+    Activo
+    BajaLogica
+    PendienteActivacion
+  }
+
+  enum EstadoContacto {
+    Activo
+    Inactivo
+    AnonimizadoRGPD
+  }
+
+  enum RolContacto {
+    Facturacion
+    Contratacion
+    Impagos
+  }
+
+  enum CanalNotificacion {
+    Email
+    WhatsApp
+    Bandeja
+  }
+
+  enum TipoMensaje {
+    Factura
+    Recordatorio
+    AvisoImpago
+  }
+
+  enum EstadoEnvio {
+    EnCola
+    Enviado
+    FallidoRebotado
+    Reintentado
+  }
+
+  enum EstadoTarea {
+    Pendiente
+    Atendida
+    Cancelada
+  }
+
+  enum EjecutorTarea {
+    Usuario
+    Sistema
+  }
+
+  enum EstadoUsuario {
+    Activo
+    Deshabilitado
+  }
+
+  enum EstadoAjuste {
+    Propuesto
+    Vigente
+    Rechazado
+  }
+}
+
+package "Persistencia" {
+  interface Repositorio<T> {
+    + guardar(entidad: T)
+    + buscarPorId(id: int): T
+    + buscar(filtro: Filtro<T>): List<T>
+    + eliminar(entidad: T)
+  }
+
+  interface Filtro<T> {
+    + criterios(): Map<String, String>
+    + orden(): String
+  }
+
+  class RepositorioFacturas {
+    + buscarPendientes(): List<Factura>
+    + buscarPorCliente(cliente: Cliente): List<Factura>
+  }
+
+  class RepositorioDisputas {
+    + buscarPorFactura(factura: Factura): List<DisputaDeuda>
+  }
+
+  class RepositorioEnviosComunicacion {
+    + buscarUltimoPorFactura(factura: Factura): EnvioComunicacion
+  }
+}
+
+' Layout
+GestorCobros -[hidden]down-> Repositorio
+Reloj -[hidden]right-> GestorCobros
+GestorSistema -[hidden]right-> GestorTrabajo
+
+' Control
+Reloj ..> GestorCobros : dispara
+GestorCobros ..> GestorSistema : obtiene ajustes
+GestorCobros ..> AjustesSistema : consulta plazos y festivos
+GestorCobros ..> GestorTrabajo : envía notificación
+GestorCobros ..> RepositorioFacturas : busca facturas
+GestorCobros ..> RepositorioDisputas : comprueba disputas
+GestorCobros ..> Factura : evalúa
+GestorCobros ..> EnvioComunicacion : consulta último envío
+
+GestorTrabajo ..> RepositorioEnviosComunicacion : persiste
+GestorTrabajo ..> Notificacion : crea
+GestorTrabajo ..> EnvioComunicacion : crea
+
+GestorSistema ..> AjustesSistema : lee
+
+' Persistencia
+Repositorio ..> Filtro : filtra por
+Repositorio <|.. RepositorioFacturas
+Repositorio <|.. RepositorioDisputas
+Repositorio <|.. RepositorioEnviosComunicacion
+RepositorioFacturas ..> Factura : almacena
+RepositorioDisputas ..> DisputaDeuda : almacena
+RepositorioEnviosComunicacion ..> EnvioComunicacion : almacena
+
+' Dominio
+Cliente "1" --> "0..*" Factura : recibe
+Cliente "0..*" o-- "0..*" Contacto : contactos
+
+Factura "1" --> "0..*" DisputaDeuda : disputas
+DisputaDeuda "0..*" --> "1" Cliente : cliente
+DisputaDeuda "0..*" --> "1" Usuario : empleado
+
+Tarea <|-- DisputaDeuda
+
+Notificacion <|-- Correo
+Notificacion <|-- WhatsApp
+Notificacion <|-- NotificacionUsuario
+
+Movimiento <|-- EnvioComunicacion
+EnvioComunicacion "0..*" --> "1" Notificacion : notificación
+EnvioComunicacion "0..*" --> "1" Factura : factura
+EnvioComunicacion "0..*" --> "1" Contacto : contacto
+
+Factura ..> EstadoFactura : estado
+Cliente ..> EstadoCliente : estado
+Contacto ..> RolContacto : rolContacto
+Contacto ..> EstadoContacto : estado
+Contacto ..> CanalNotificacion : admiteCanal
+EnvioComunicacion ..> TipoMensaje : tipoMensaje
+EnvioComunicacion ..> EstadoEnvio : estado
+Tarea ..> EstadoTarea : estado
+Tarea ..> EjecutorTarea : ejecutor
+Usuario ..> EstadoUsuario : estado
+AjustesSistema ..> EstadoAjuste : estado
+
+@enduml

@@ -1,0 +1,248 @@
+@startuml CU-08
+skinparam style strictuml
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+title Bloque 2 - Contratos y cobros
+
+package "Interfaz" {
+  class FichaCliente <<boundary>> {
+    + abrirSeccionSuscripcion(cliente: Cliente)
+    + mostrarEstadoSuscripcion(estado: EstadoSuscripcion)
+  }
+
+  class VentanaSuscripcion <<boundary>> {
+    + mostrarFormulario(cliente: Cliente)
+    + mostrarSuscripcion(suscripcion: Suscripcion)
+    + previsualizarProrrateo(importe: double)
+    + adjuntarDocumento(archivo: String)
+    + seleccionarExcepcionSinProrrateo()
+    + solicitarDatosPausa()
+    + mostrarErrorValidacion(mensaje: String)
+    + confirmar()
+    + cancelar()
+  }
+}
+
+package "Control" {
+  class GestorSuscripciones <<control>> {
+    + obtenerSuscripcion(cliente: Cliente): Suscripcion
+    + crearSuscripcion(cliente: Cliente, inicio: Date, plan: String, tarifa: TarifaRango, responsable: Usuario, plazoDias: int, contrato: String, sinProrrateo: boolean): Suscripcion
+    + actualizarSuscripcion(suscripcion: Suscripcion, inicio: Date, plan: String, tarifa: TarifaRango, responsable: Usuario, plazoDias: int, contrato: String, sinProrrateo: boolean): Suscripcion
+    + pausar(suscripcion: Suscripcion, motivo: String, inicio: Date, finPrevisto: Date)
+    + reactivar(suscripcion: Suscripcion)
+    + calcularProrrateo(suscripcion: Suscripcion): double
+  }
+
+  class GestorClientes <<control>> {
+    + obtenerClientePorNif(nif: String): Cliente
+  }
+
+  class GestorAprobaciones <<control>> {
+    + requiereAprobacion(excepcion: ExcepcionComercial): boolean
+    + solicitarAprobacion(cliente: Cliente, excepcion: ExcepcionComercial)
+  }
+
+  class GestorMovimientos <<control>> {
+    + registrarAuditoria(tabla: String, idRegistro: String, accion: TipoAccionAuditoria, usuario: Usuario, valorAnterior: JSON, valorNuevo: JSON)
+  }
+
+  class AutenticadorValidador <<static>> {
+    + comprobarPermiso(usuario: Usuario, operacion: String, cliente: Cliente): boolean
+    + validarDatosFiscales(cliente: Cliente): boolean
+  }
+}
+
+package "Dominio" {
+  abstract class Usuario <<entity>> {
+    - idUsuario: int
+    - emailCorporativo: String
+    - hashContrasena: String
+    - nombreCompleto: String
+    - estadoCuenta: EstadoUsuario
+    - fechaRegistro: DateTime
+    - ultimoAcceso: DateTime
+    + autenticar(contrasena: String): boolean
+    + cambiarContrasena(nuevaContrasena: String)
+    + desactivar()
+    + reactivar()
+    + puedeAcceder(cliente: Cliente): boolean
+  }
+
+  class UsuarioOperativo <<entity>> {
+    - carteraClientes: List<Cliente>
+    - puedeCrearClientes: boolean
+  }
+
+  class Administrador <<entity>> {
+    - umbralAprobacion: double
+  }
+
+  class SuperAdministrador <<entity>>
+
+  class Cliente <<entity>> {
+    - nifCif: String
+    - nombreComercial: String
+    - razonSocial: String
+    - direccionFiscal: String
+    - pais: String
+    - moneda: String
+    - estado: EstadoCliente
+    - fechaRegistro: Date
+    - fechaBajaEfectiva: Date
+    - motivoBaja: String
+    - suscripcion: Suscripcion
+    + tieneDatosFiscalesCompletos(): boolean
+    + estaActivo(): boolean
+  }
+
+  class Suscripcion <<entity>> {
+    - idSuscripcion: int
+    - fechaInicio: Date
+    - planContratado: String
+    - tarifaAcordada: double
+    - estado: EstadoSuscripcion
+    - motivoPausa: String
+    - fechaInicioPausa: Date
+    - fechaFinPausaPrevista: Date
+    - excepcionSinProrrateo: boolean
+    - plazoPagoDias: int
+    - rutaDocumentoContrato: String
+    - tarifa: TarifaRango
+    - responsableComercial: Usuario
+    - excepcionComercial: ExcepcionComercial
+    + calcularProrrateoPrimerMes(): double
+    + esPausaValida(motivo: String, fechaInicio: Date, fechaFinPrevista: Date): boolean
+    + pausar(motivo: String, inicio: Date, fin: Date)
+    + reactivar()
+    + cancelar()
+    + debeFacturarse(mes: Date): boolean
+    + aplicarNuevaTarifa(tarifa: TarifaRango, fechaEfecto: Date)
+  }
+
+  class TarifaRango <<entity>> {
+    - idTarifa: int
+    - facturacionAnualMinima: double
+    - facturacionAnualMaxima: double
+    - importeMensualBase: double
+    - vigenteDesde: Date
+    - vigenteHasta: Date
+    + aplicaA(facturacionAnual: double): boolean
+    + esValidaEn(fecha: Date): boolean
+  }
+
+  class ExcepcionComercial <<entity>> {
+    - idExcepcion: int
+    - tipo: TipoExcepcion
+    - valor: double
+    - vigenteDesde: Date
+    - vigenteHasta: Date
+    + esValidaEn(fecha: Date): boolean
+  }
+
+  enum EstadoSuscripcion {
+    Activa
+    Pausada
+    ProgramadaFutura
+    Cancelada
+  }
+
+  enum EstadoCliente {
+    Activo
+    BajaLogica
+    PendienteActivacion
+  }
+
+  enum TipoExcepcion {
+    DescuentoTemporal
+    PrimerMesGratis
+    PrecioPactado
+    SinProrrateo
+  }
+
+  enum EstadoUsuario {
+    Activo
+    Deshabilitado
+  }
+
+  enum TipoAccionAuditoria {
+    Alta
+    Modificacion
+    Emision
+    Conciliacion
+    Reasignacion
+    CierrePeriodo
+  }
+}
+
+package "Persistencia" {
+  interface Repositorio<T> {
+    + guardar(entidad: T)
+    + buscarPorId(id: int): T
+    + buscar(filtro: Filtro<T>): List<T>
+    + contar(filtro: Filtro<T>): int
+    + eliminar(entidad: T)
+  }
+
+  interface Filtro<T> {
+    + criterios(): Map<String, String>
+    + orden(): String
+  }
+
+  class RepositorioSuscripciones {
+    + buscarPorCliente(cliente: Cliente): Suscripcion
+  }
+
+  class RepositorioClientes {
+    + buscarPorNif(nif: String): Cliente
+  }
+}
+
+' Interfaz a control
+FichaCliente ..> GestorClientes : carga cliente
+FichaCliente ..> VentanaSuscripcion : abre
+VentanaSuscripcion ..> GestorSuscripciones : delega
+
+' Dependencias de control
+GestorSuscripciones ..> GestorClientes : carga cliente
+GestorSuscripciones ..> RepositorioSuscripciones : persiste
+GestorSuscripciones ..> GestorAprobaciones : solicita aprobación (resolución CU-10/CU-11)
+GestorSuscripciones ..> AutenticadorValidador : comprueba permiso y datos fiscales
+GestorSuscripciones ..> GestorMovimientos : audita
+
+GestorClientes ..> RepositorioClientes : persiste
+GestorClientes ..> AutenticadorValidador : comprueba permiso
+GestorClientes ..> GestorMovimientos : audita
+
+GestorAprobaciones ..> AutenticadorValidador : comprueba permiso
+GestorAprobaciones ..> GestorMovimientos : audita
+
+' Persistencia
+Repositorio ..> Filtro : filtra por
+Repositorio <|.. RepositorioSuscripciones
+Repositorio <|.. RepositorioClientes
+RepositorioSuscripciones ..> Suscripcion : almacena
+RepositorioClientes ..> Cliente : almacena
+
+' Dominio
+Cliente "1" *-- "1" Suscripcion : formaliza
+Suscripcion "0..*" --> "1" TarifaRango : tarifada por
+Suscripcion "0..*" --> "1" Usuario : responsable comercial
+Suscripcion "1" *-- "0..*" ExcepcionComercial : contiene
+
+Usuario <|-- UsuarioOperativo
+Usuario <|-- Administrador
+Administrador <|-- SuperAdministrador
+
+Cliente ..> EstadoCliente : estado
+Suscripcion ..> EstadoSuscripcion : estado
+Usuario ..> EstadoUsuario : estado
+ExcepcionComercial ..> TipoExcepcion : tipo
+
+note right of Suscripcion
+  Prorrateo del primer mes = tarifa mensual acordada
+  x días restantes (incluido el día de inicio)
+  / días naturales del mes.
+end note
+
+@enduml
+

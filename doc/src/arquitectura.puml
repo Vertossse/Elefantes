@@ -42,7 +42,7 @@ package "Servicios Transversales" {
     interface Repositorio<T> {
         +guardar(t: T)
         +buscarPorId(id): T
-        +buscar(filtro: Filtro<T>): Lista<T>
+        +buscar(filtro: Filtro<T>): List<T>
     }
 }
 
@@ -58,11 +58,11 @@ package "Capa Control (Gestores)" {
     class GestorSistema <<singleton, control>>
     class GestorEmpleados <<control>>
     class GestorMovimientos <<control>> {
-        +registrarMovimiento(tipo: TipoMovimiento, usuario: Usuario, entidad: Texto, idEntidad: Texto, detalle: Texto): Movimiento
-        +registrarAuditoria(tabla: Texto, idRegistro: Texto, accion: TipoAccionAuditoria, usuario: Usuario, anterior: JSON, nuevo: JSON): RegistroAuditoria
+        +registrarMovimiento(tipo: TipoMovimiento, usuario: Usuario, entidad: String, idEntidad: String, detalle: String): Movimiento
+        +registrarAuditoria(tabla: String, idRegistro: String, accion: TipoAccionAuditoria, usuario: Usuario, anterior: JSON, nuevo: JSON): RegistroAuditoria
         +registrarEnvio(tipoMsg: TipoMensaje, canal: CanalNotificacion, contacto: Contacto, factura: Factura): EnvioComunicacion
-        +registrarImportacion(usuario: Usuario, archivo: Texto, total: Entero, correctas: Entero, errores: Entero): ImportacionCSV
-        +consultarMovimientos(filtro: FiltroMovimientos): Lista<Movimiento>
+        +registrarImportacion(usuario: Usuario, archivo: String, total: int, correctas: int, errores: int): ImportacionCSV
+        +consultarMovimientos(filtro: FiltroMovimientos): List<Movimiento>
     }
 
     GestorTrabajo ..> Reloj : escucha
@@ -76,76 +76,76 @@ package "Capa Control (Gestores)" {
 
 package "Capa Dominio (Entidades)" {
     abstract class Usuario <<entity>> {
-        -idUsuario: Entero
-        -emailCorporativo: Texto
+        -idUsuario: int
+        -emailCorporativo: String
     }
     class UsuarioOperativo extends Usuario
     class Administrador extends Usuario
     class SuperAdministrador extends Administrador
 
     class Cliente <<entity>> {
-        -nifCif: Texto
-        -razonSocial: Texto
+        -nifCif: String
+        -razonSocial: String
     }
 
     class Suscripcion <<entity>> {
-        -idSuscripcion: Entero
-        -tarifaAcordada: Decimal
+        -idSuscripcion: int
+        -tarifaAcordada: double
         -estado: Enum
     }
 
     class Concepto <<entity>> {
-        -idConcepto: Entero
-        -nombre: Texto
-        -descripcion: Texto
-        -cantidad: Entero
-        -precioUnitario: Decimal
-        -descuento: Decimal
-        -impuesto: Decimal
-        -subtotal: Decimal
+        -idConcepto: int
+        -nombre: String
+        -descripcion: String
+        -cantidad: int
+        -precioUnitario: double
+        -descuento: double
+        -impuesto: double
+        -subtotal: double
     }
 
     abstract class Factura <<entity>> {
-        -idFactura: Entero
-        -total: Decimal
+        -idFactura: int
+        -total: double
         -estado: Enum
-        -conceptos: Lista<Concepto>
-        +recalcularTotales(): Decimal
+        -conceptos: List<Concepto>
+        +recalcularTotales(): double
     }
     class FacturaRecurrente extends Factura
     class FacturaPuntual extends Factura
     class FacturaRectificativa extends Factura
 
     class Cobro <<entity>> {
-        -idCobro: Entero
-        -fecha: FechaHora
-        -importe: Decimal
-        -metodo: Texto
-        -referenciaStripe: Texto
+        -idCobro: int
+        -fecha: DateTime
+        -importe: double
+        -metodo: String
+        -referenciaStripe: String
         -estado: Enum
     }
 
     class Conciliacion <<entity>> {
-        -idConciliacion: Entero
-        -fecha: FechaHora
+        -idConciliacion: int
+        -fecha: DateTime
         -estado: Enum
-        -diferencia: Decimal
-        -tipoDiferencia: Texto
+        -diferencia: double
+        -tipoDiferencia: String
     }
 
     class ExcepcionComercial <<entity>> {
-        -idExcepcion: Entero
-        -tipo: Texto
-        -motivo: Texto
-        -importe: Decimal
+        -idExcepcion: int
+        -tipo: String
+        -motivo: String
+        -importe: double
         -aprobadaPor: Usuario
-        -fecha: FechaHora
+        -fecha: DateTime
     }
 
     Factura "1" o-- "1..*" Concepto : conceptos
 
     abstract class Tarea <<entity>> {
-        -idTarea: Entero
+        -idTarea: int
         -estado: Enum
         -ejecutor: Enum
     }
@@ -171,15 +171,15 @@ package "Capa Dominio (Entidades)" {
     }
 
     class Movimiento <<entity>> {
-        -idMovimiento: Entero
-        -fechaHora: FechaHora
+        -idMovimiento: int
+        -fechaHora: DateTime
         -tipo: TipoMovimiento
-        -entidadAfectada: Texto
-        -idEntidadAfectada: Texto
-        -detalle: Texto
+        -entidadAfectada: String
+        -idEntidadAfectada: String
+        -detalle: String
         -usuario: Usuario
-        +Movimiento(tipo: TipoMovimiento, usuario: Usuario, entidad: Texto, idEntidad: Texto, detalle: Texto)
-        +Movimiento(tipo: TipoMovimiento, entidad: Texto, idEntidad: Texto, detalle: Texto)
+        +Movimiento(tipo: TipoMovimiento, usuario: Usuario, entidad: String, idEntidad: String, detalle: String)
+        +Movimiento(tipo: TipoMovimiento, entidad: String, idEntidad: String, detalle: String)
     }
 
     enum TipoAccionAuditoria <<enumeration>> {
@@ -192,8 +192,8 @@ package "Capa Dominio (Entidades)" {
     }
 
     class RegistroAuditoria extends Movimiento {
-        -tablaAfectada: Texto
-        -idRegistroAfectado: Texto
+        -tablaAfectada: String
+        -idRegistroAfectado: String
         -tipoAccion: TipoAccionAuditoria
         -valorAnterior: JSON
         -valorNuevo: JSON
@@ -221,12 +221,12 @@ package "Capa Dominio (Entidades)" {
         -tipoMensaje: TipoMensaje
         -canal: CanalNotificacion
         -estadoEnvio: EstadoEnvio
-        -numeroIntento: Entero
+        -numeroIntento: int
         -contactoDestinatario: Contacto
         -factura: Factura
         +marcarEnviado(): Void
         +marcarRebotado(): Void
-        +reintentar(): Booleano
+        +reintentar(): boolean
     }
 
     enum EstadoImportacion <<enumeration>> {
@@ -236,27 +236,27 @@ package "Capa Dominio (Entidades)" {
     }
 
     class ImportacionCSV extends Movimiento {
-        -nombreArchivo: Texto
-        -filasTotales: Entero
-        -filasCorrectas: Entero
-        -filasConError: Entero
+        -nombreArchivo: String
+        -filasTotales: int
+        -filasCorrectas: int
+        -filasConError: int
         -estadoImportacion: EstadoImportacion
-        -rutaInformeErrores: Texto
+        -rutaInformeErrores: String
     }
 
     abstract class Notificacion <<entity>> {
-        -idNotificacion: Entero
-        -asunto: Texto
+        -idNotificacion: int
+        -asunto: String
     }
     class Correo extends Notificacion
     class WhatsApp extends Notificacion
     class NotificacionUsuario extends Notificacion
 
     class DocumentoExportado <<entity>> {
-        -idDocumento: Entero
-        -tipo: Texto
-        -ruta: Texto
-        -fechaGeneracion: FechaHora
+        -idDocumento: int
+        -tipo: String
+        -ruta: String
+        -fechaGeneracion: DateTime
     }
 
     Cliente "1" *-- "1" Suscripcion

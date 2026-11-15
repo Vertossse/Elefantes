@@ -1,0 +1,73 @@
+@startuml SEC-18
+skinparam style strictuml
+skinparam maxMessageSize 180
+autonumber
+title SEC-18 - Recordatorios y avisos de impago automáticos
+
+participant "Reloj" as Reloj <<singleton>>
+control "GestorCobros" as GC
+control "GestorSistema" as GSistema
+control "GestorTrabajo" as GT
+entity "Cliente" as Cliente
+entity "Contacto" as Contacto
+entity "Notificacion" as Notificacion
+entity "EnvioComunicacion" as Envio
+entity "AjustesSistema" as Ajustes
+database "RepositorioFacturas" as RF
+database "RepositorioDisputas" as RD
+database "RepositorioEnviosComunicacion" as REC
+
+Reloj -> GC : enviarRecordatorios(fechaActual)
+GC -> GSistema : obtenerAjustes()
+GSistema -> Ajustes : obtener("plazoRecordatorio")
+Ajustes --> GSistema : valor
+GSistema -> Ajustes : obtener("plazoAviso")
+Ajustes --> GSistema : valor
+GSistema --> GC : ajustes
+GC -> GC : listarImpagos()
+GC -> RF : buscarPendientes()
+RF --> GC : facturas
+
+loop Por cada factura pendiente
+  GC -> RD : buscarPorFactura(factura)
+  RD --> GC : disputas
+  alt Factura en disputa o seguimiento pausado
+    GC -> GC : omitir(factura)
+  else Factura sin bloqueo
+    GC -> GC : determinarTipoAviso(factura, fechaActual)
+    GC -> GC : calcularFechaEnvio(fechaActual)
+    GC -> Ajustes : esLaborable(fechaEnvio)
+    Ajustes --> GC : boolean
+    opt Fecha no laborable
+      GC -> Ajustes : siguienteDiaLaborable(fechaEnvio)
+      Ajustes --> GC : fechaEnvio
+    end
+    GC -> Cliente : obtenerContacto(RolContacto.Impagos)
+    Cliente --> GC : contacto
+    alt No hay contacto válido
+      note over GC : El responsable debe completar el contacto de impagos.
+    else Contacto válido
+      GC -> Contacto : admiteCanal(CanalNotificacion.Email)
+      Contacto --> GC : boolean
+      alt Canal no admitido
+        note over GC : Se usa el canal disponible o la bandeja interna.
+      else Canal admitido
+        GC -> GT : enviarNotificacion(notificacion, factura, contacto, tipo)
+        GT -> REC : buscarUltimoPorFactura(factura)
+        REC --> GT : ultimoEnvio
+        alt Envío ya realizado en la misma fecha
+          GT -> GT : descartar()
+        else Envío nuevo
+          GT -> Notificacion : crear(asunto, texto, fecha, usuarioDestinatario)
+          GT -> Envio : crear(tipoMensaje, notificacion, factura, contacto)
+          GT -> REC : guardar(envio)
+          GT --> GC : envio
+        end
+      end
+    end
+  end
+end
+
+GC --> Reloj : proceso finalizado
+
+@enduml
