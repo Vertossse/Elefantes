@@ -4,18 +4,18 @@ skinparam maxMessageSize 180
 autonumber
 title SEC-08 - Gestión de la suscripción de un cliente
 
-actor "Usuario\n(AD / SA / UO)" as Usuario
-boundary "FichaCliente" as Ficha
-boundary "VentanaSuscripcion" as Ventana
-control "GestorSuscripciones" as GS
-control "GestorClientes" as GC
-control "AutenticadorValidador" as AV
-control "GestorMovimientos" as GM
-entity "Cliente" as Cliente
-entity "Suscripcion" as Suscripcion
-entity "TarifaRango" as Tarifa
+actor "Usuario\n(AD / SA / UO)"     as Usuario
+boundary "FichaCliente"             as Ficha
+boundary "VentanaSuscripcion"       as Ventana
+control "GestorSuscripciones"       as GS
+control "GestorClientes"            as GC
+control "AutenticadorValidador"     as AV
+control "GestorMovimientos"         as GM
+entity "Cliente"                    as Cliente
+entity "Suscripcion"                as Suscripcion
+entity "TarifaRango"                as Tarifa
 database "RepositorioSuscripciones" as RS
-database "RepositorioClientes" as RC
+database "RepositorioClientes"      as RC
 
 Usuario -> Ficha : abrir ficha del cliente
 Ficha -> GC : obtenerClientePorNif(nif)

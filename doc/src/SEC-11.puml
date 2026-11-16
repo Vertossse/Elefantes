@@ -4,18 +4,18 @@ skinparam maxMessageSize 180
 autonumber
 title SEC-11 - Aprobación o rechazo de solicitudes
 
-actor "Usuario\n(AD / SA)" as Usuario
-boundary "BandejaAprobaciones" as Bandeja
-boundary "VentanaAprobacion" as Ventana
-control "GestorAprobaciones" as GA
-control "AutenticadorValidador" as AV
-control "GestorMovimientos" as GM
-entity "SolicitudAprobacion" as Solicitud
-entity "RevisionAnual" as Revision
-entity "TarifaRango" as Tarifa
+actor "Usuario\n(AD / SA)"                  as Usuario
+boundary "BandejaAprobaciones"              as Bandeja
+boundary "VentanaAprobacion"                as Ventana
+control "GestorAprobaciones"                as GA
+control "AutenticadorValidador"             as AV
+control "GestorMovimientos"                 as GM
+entity "SolicitudAprobacion"                as Solicitud
+entity "RevisionAnual"                      as Revision
+entity "TarifaRango"                        as Tarifa
 database "RepositorioSolicitudesAprobacion" as RSA
-database "RepositorioRevisionesAnuales" as RRA
-database "RepositorioUsuarios" as RU
+database "RepositorioRevisionesAnuales"     as RRA
+database "RepositorioUsuarios"              as RU
 
 Usuario -> Bandeja : abrir bandeja de aprobaciones
 Bandeja -> GA : listarPendientes(usuario)

@@ -194,7 +194,7 @@ package "Dominio" {
 
   enum EstadoUsuario {
     Activo
-    Deshabilitado
+    Desactivado
   }
 
   enum TipoAccionAuditoria {

@@ -4,16 +4,16 @@ skinparam maxMessageSize 180
 autonumber
 title SEC-21 - Conciliación manual de un cobro
 
-actor "Usuario\n(AD / UO)" as Usuario
-boundary "VentanaConciliacion" as Ventana
-control "GestorCobros" as GC
-control "AutenticadorValidador" as AV
-control "GestorMovimientos" as GM
-entity "Conciliacion" as Conciliacion
-entity "Factura" as Factura
-database "RepositorioMovimientosCobro" as RMC
-database "RepositorioConciliaciones" as RCon
-database "RepositorioFacturas" as RF
+actor "Usuario\n(AD / UO)"              as Usuario
+boundary "VentanaConciliacion"          as Ventana
+control "GestorCobros"                  as GC
+control "AutenticadorValidador"         as AV
+control "GestorMovimientos"             as GM
+entity "Conciliacion"                   as Conciliacion
+entity "Factura"                        as Factura
+database "RepositorioMovimientosCobro"  as RMC
+database "RepositorioConciliaciones"    as RCon
+database "RepositorioFacturas"          as RF
 
 Usuario -> Ventana : abrir conciliación manual
 Ventana -> GC : listarPendientes(usuario)

@@ -4,24 +4,24 @@ skinparam maxMessageSize 180
 autonumber
 title SEC-09 - Revisión anual del rango de un cliente
 
-actor "Usuario\n(AD / SA)" as Usuario
-actor "Aprobador\n(AD / SA)" as Aprobador
-boundary "VentanaRevisionesAnuales" as VR
-boundary "VentanaAprobacion" as VA
-control "GestorRevisionesAnuales" as GRA
-control "GestorTarifas" as GT
-control "GestorClientes" as GC
-control "GestorSuscripciones" as GS
-control "AutenticadorValidador" as AV
-control "GestorMovimientos" as GM
-entity "Cliente" as Cliente
-entity "RevisionAnual" as Revision
-entity "TarifaRango" as Tarifa
-entity "Suscripcion" as Suscripcion
+actor "Usuario\n(AD / SA)"              as Usuario
+actor "Aprobador\n(AD / SA)"            as Aprobador
+boundary "VentanaRevisionesAnuales"     as VR
+boundary "VentanaAprobacion"            as VA
+control "GestorRevisionesAnuales"       as GRA
+control "GestorTarifas"                 as GT
+control "GestorClientes"                as GC
+control "GestorSuscripciones"           as GS
+control "AutenticadorValidador"         as AV
+control "GestorMovimientos"             as GM
+entity "Cliente"                        as Cliente
+entity "RevisionAnual"                  as Revision
+entity "TarifaRango"                    as Tarifa
+entity "Suscripcion"                    as Suscripcion
 database "RepositorioRevisionesAnuales" as RRA
-database "RepositorioTarifas" as RT
-database "RepositorioSuscripciones" as RS
-database "RepositorioClientes" as RC
+database "RepositorioTarifas"           as RT
+database "RepositorioSuscripciones"     as RS
+database "RepositorioClientes"          as RC
 
 Usuario -> VR : abrir revisiones anuales
 VR -> GRA : listarPendientes()

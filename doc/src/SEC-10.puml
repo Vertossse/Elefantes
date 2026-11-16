@@ -4,17 +4,17 @@ skinparam maxMessageSize 180
 autonumber
 title SEC-10 - Solicitud de una excepción comercial
 
-actor "Usuario\n(UO / AD / SA)" as Usuario
-boundary "VentanaSuscripcion" as Ventana
-control "GestorSuscripciones" as GS
-control "GestorAprobaciones" as GA
-control "AutenticadorValidador" as AV
-control "GestorMovimientos" as GM
-entity "Suscripcion" as Suscripcion
-entity "ExcepcionComercial" as Excepcion
-database "RepositorioSuscripciones" as RS
+actor "Usuario\n(UO / AD / SA)"             as Usuario
+boundary "VentanaSuscripcion"               as Ventana
+control "GestorSuscripciones"               as GS
+control "GestorAprobaciones"                as GA
+control "AutenticadorValidador"             as AV
+control "GestorMovimientos"                 as GM
+entity "Suscripcion"                        as Suscripcion
+entity "ExcepcionComercial"                 as Excepcion
+database "RepositorioSuscripciones"         as RS
 database "RepositorioSolicitudesAprobacion" as RSA
-database "RepositorioUsuarios" as RU
+database "RepositorioUsuarios"              as RU
 
 Usuario -> Ventana : abrir suscripción del cliente
 Ventana -> GS : obtenerSuscripcion(cliente)

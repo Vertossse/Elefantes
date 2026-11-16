@@ -4,23 +4,23 @@ skinparam maxMessageSize 180
 autonumber
 title SEC-19 - Gestión de una disputa
 
-actor "Usuario\n(AD / UO)" as Usuario
-boundary "FichaCliente" as Ficha
-boundary "VentanaDisputa" as Ventana
-control "GestorCobros" as GC
-control "GestorFacturas" as GF
-control "GestorClientes" as GCli
-control "GestorAprobaciones" as GA
-control "AutenticadorValidador" as AV
-control "GestorMovimientos" as GM
-entity "Cliente" as Cliente
-entity "Factura" as Factura
-entity "DisputaDeuda" as Disputa
-entity "SolicitudAprobacion" as Solicitud
-database "RepositorioDisputas" as RD
-database "RepositorioFacturas" as RF
+actor "Usuario\n(AD / UO)"                  as Usuario
+boundary "FichaCliente"                     as Ficha
+boundary "VentanaDisputa"                   as Ventana
+control "GestorCobros"                      as GC
+control "GestorFacturas"                    as GF
+control "GestorClientes"                    as GCli
+control "GestorAprobaciones"                as GA
+control "AutenticadorValidador"             as AV
+control "GestorMovimientos"                 as GM
+entity "Cliente"                            as Cliente
+entity "Factura"                            as Factura
+entity "DisputaDeuda"                       as Disputa
+entity "SolicitudAprobacion"                as Solicitud
+database "RepositorioDisputas"              as RD
+database "RepositorioFacturas"              as RF
 database "RepositorioSolicitudesAprobacion" as RSA
-database "RepositorioClientes" as RC
+database "RepositorioClientes"              as RC
 
 Usuario -> Ficha : abrir ficha del cliente
 Ficha -> GCli : obtenerClientePorNif(nif)

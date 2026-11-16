@@ -4,18 +4,18 @@ skinparam maxMessageSize 180
 autonumber
 title SEC-18 - Recordatorios y avisos de impago automáticos
 
-participant "Reloj" as Reloj <<singleton>>
-control "GestorCobros" as GC
-control "GestorSistema" as GSistema
-control "GestorTrabajo" as GT
-entity "Cliente" as Cliente
-entity "Contacto" as Contacto
-entity "Notificacion" as Notificacion
-entity "EnvioComunicacion" as Envio
-entity "AjustesSistema" as Ajustes
-database "RepositorioFacturas" as RF
-database "RepositorioDisputas" as RD
-database "RepositorioEnviosComunicacion" as REC
+participant "Reloj"                       as Reloj <<singleton>>
+control "GestorCobros"                    as GC
+control "GestorSistema"                   as GSistema
+control "GestorTrabajo"                   as GT
+entity "Cliente"                          as Cliente
+entity "Contacto"                         as Contacto
+entity "Notificacion"                     as Notificacion
+entity "EnvioComunicacion"                as Envio
+entity "AjustesSistema"                   as Ajustes
+database "RepositorioFacturas"            as RF
+database "RepositorioDisputas"            as RD
+database "RepositorioEnviosComunicacion"  as REC
 
 Reloj -> GC : enviarRecordatorios(fechaActual)
 GC -> GSistema : obtenerAjustes()

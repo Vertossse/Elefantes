@@ -4,17 +4,17 @@ skinparam maxMessageSize 180
 autonumber
 title SEC-20 - Conciliación automática de cobros
 
-participant "Reloj" as Reloj <<singleton>>
-control "GestorCobros" as GC
-control "GestorSistema" as GSistema
-control "GestorTrabajo" as GT
-control "GestorMovimientos" as GM
-entity "Conciliacion" as Conciliacion
-entity "Factura" as Factura
-entity "AjustesSistema" as Ajustes
-database "RepositorioMovimientosCobro" as RMC
-database "RepositorioConciliaciones" as RCon
-database "RepositorioFacturas" as RF
+participant "Reloj"                     as Reloj <<singleton>>
+control "GestorCobros"                  as GC
+control "GestorSistema"                 as GSistema
+control "GestorTrabajo"                 as GT
+control "GestorMovimientos"             as GM
+entity "Conciliacion"                   as Conciliacion
+entity "Factura"                        as Factura
+entity "AjustesSistema"                 as Ajustes
+database "RepositorioMovimientosCobro"  as RMC
+database "RepositorioConciliaciones"    as RCon
+database "RepositorioFacturas"          as RF
 
 Reloj -> GC : conciliarAutomaticamente(movimientoCobro)
 GC -> GSistema : obtenerAjustes()
