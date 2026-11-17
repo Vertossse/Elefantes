@@ -1,0 +1,432 @@
+@startuml ER Turbine
+' ER fisico de Turbine. Motor: PostgreSQL.
+' Base: guia de clases y ER (version tras los cambios). Detalle en er-diccionario.md.
+
+title ER fisico de Turbine
+
+hide circle
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam entity {
+  BackgroundColor White
+  BorderColor #3E4A5F
+}
+skinparam ArrowColor #3E4A5F
+
+legend right
+  Con ● delante: columna NOT NULL.
+  PK clave primaria, FK clave foranea, UK clave unica.
+  Las FK hacia usuario (salvo las principales) figuran como columna
+  pero no se dibujan como linea, para no saturar.
+endlegend
+
+package "Usuarios y clientes" #EAF1FB {
+  entity usuario {
+    * id : BIGINT <<PK>>
+    --
+    * email : VARCHAR(254) <<UK>>
+    * nombre_completo : VARCHAR(120)
+    password_hash : VARCHAR(255)
+    * rol : VARCHAR(3)
+    * estado_cuenta : VARCHAR(11)
+    umbral_aprobacion : NUMERIC(12,2)
+    puede_dar_alta_clientes : BOOLEAN
+    * intentos_fallidos : SMALLINT
+    bloqueado_hasta : TIMESTAMPTZ
+    * fecha_alta : TIMESTAMPTZ
+    ultimo_acceso : TIMESTAMPTZ
+  }
+  entity asignacion_cliente {
+    * id : BIGINT <<PK>>
+    --
+    * cliente_id : BIGINT <<FK>>
+    * usuario_id : BIGINT <<FK>>
+    * fecha_inicio : DATE
+    fecha_fin : DATE
+    * motivo : VARCHAR(16)
+  }
+  entity cliente {
+    * id : BIGINT <<PK>>
+    --
+    * nif_cif : VARCHAR(40) <<UK>>
+    * nombre_comercial : VARCHAR(150)
+    razon_social : VARCHAR(200)
+    domicilio_calle : VARCHAR(150)
+    domicilio_numero : VARCHAR(20)
+    domicilio_cp : VARCHAR(12)
+    domicilio_ciudad : VARCHAR(80)
+    pais : CHAR(2)
+    * moneda : CHAR(3)
+    * estado : VARCHAR(20)
+    * fecha_alta : DATE
+    fecha_baja_efectiva : DATE
+    motivo_baja : TEXT
+    usuario_responsable_id : BIGINT <<FK>>
+  }
+  entity contacto {
+    * id : BIGINT <<PK>>
+    --
+    nombre_completo : VARCHAR(120)
+    email : VARCHAR(254)
+    telefono : VARCHAR(30)
+    * rol_contacto : VARCHAR(14)
+    * consentimiento_email : BOOLEAN
+    * consentimiento_whatsapp : BOOLEAN
+    * idioma : CHAR(2)
+    * estado : VARCHAR(16)
+  }
+  entity cliente_contacto {
+    * cliente_id : BIGINT <<PK,FK>>
+    * contacto_id : BIGINT <<PK,FK>>
+    --
+  }
+  entity etiqueta {
+    * id : BIGINT <<PK>>
+    --
+    * nombre : VARCHAR(60) <<UK>>
+    color_hex : CHAR(7)
+  }
+  entity cliente_etiqueta {
+    * cliente_id : BIGINT <<PK,FK>>
+    * etiqueta_id : BIGINT <<PK,FK>>
+    --
+  }
+}
+
+package "Suscripcion y tarifas" #FFF6E5 {
+  entity tarifa_rango {
+    * id : BIGINT <<PK>>
+    --
+    * rango_facturacion_min : NUMERIC(14,2)
+    rango_facturacion_max : NUMERIC(14,2)
+    * importe_mensual_base : NUMERIC(12,2)
+    * fecha_efecto : DATE
+    valido_hasta : DATE
+  }
+  entity suscripcion {
+    * id : BIGINT <<PK>>
+    --
+    * cliente_id : BIGINT <<FK,UK>>
+    * tarifa_rango_id : BIGINT <<FK>>
+    usuario_comercial_id : BIGINT <<FK>>
+    * fecha_inicio : DATE
+    * plan_contratado : VARCHAR(80)
+    * tarifa_acordada : NUMERIC(12,2)
+    * estado : VARCHAR(18)
+    motivo_pausa : TEXT
+    fecha_inicio_pausa : DATE
+    fecha_fin_pausa_prevista : DATE
+    * excepcion_sin_prorrateo : BOOLEAN
+    * plazo_pago_dias : SMALLINT
+    ruta_documento_contrato : VARCHAR(255)
+  }
+  entity excepcion_comercial {
+    * id : BIGINT <<PK>>
+    --
+    * suscripcion_id : BIGINT <<FK>>
+    * tipo : VARCHAR(20)
+    valor : NUMERIC(12,2)
+    * vigente_desde : DATE
+    vigente_hasta : DATE
+  }
+}
+
+package "Facturacion" #FDECEC {
+  entity concepto {
+    * id : BIGINT <<PK>>
+    --
+    * nombre : VARCHAR(120)
+    descripcion_por_defecto : VARCHAR(200)
+    * precio_base : NUMERIC(12,2)
+    * impuesto_por_defecto : NUMERIC(5,2)
+    * activo : BOOLEAN
+  }
+  entity factura {
+    * id : BIGINT <<PK>>
+    --
+    * tipo : VARCHAR(14)
+    * cliente_id : BIGINT <<FK>>
+    suscripcion_id : BIGINT <<FK>>
+    * usuario_creador_id : BIGINT <<FK>>
+    * concepto_id : BIGINT <<FK>>
+    * descripcion : VARCHAR(200)
+    * cantidad : NUMERIC(10,3)
+    * precio_unitario : NUMERIC(12,2)
+    * porcentaje_descuento : NUMERIC(5,2)
+    * porcentaje_impuesto : NUMERIC(5,2)
+    * importe_total_linea : NUMERIC(12,2)
+    numero_serie_completo : VARCHAR(30) <<UK>>
+    serie : VARCHAR(10)
+    numero_secuencial : INTEGER
+    * estado_documento : VARCHAR(12)
+    estado_cobro : VARCHAR(10)
+    fecha_emision : DATE
+    fecha_vencimiento : DATE
+    * moneda : CHAR(3)
+    * subtotal : NUMERIC(12,2)
+    * impuestos : NUMERIC(12,2)
+    * total : NUMERIC(12,2)
+    mes_facturado : CHAR(7)
+    presupuesto_origen : VARCHAR(100)
+    * es_migrada_historica : BOOLEAN
+    cliente_razon_social : VARCHAR(200)
+    cliente_nif_cif : VARCHAR(40)
+    cliente_domicilio : TEXT
+    emisor_razon_social : VARCHAR(200)
+    emisor_nif_cif : VARCHAR(40)
+    emisor_domicilio : TEXT
+    * version : INTEGER
+    * creado_en : TIMESTAMPTZ
+  }
+  entity factura_rectificativa {
+    * factura_id : BIGINT <<PK,FK>>
+    --
+    * factura_original_id : BIGINT <<FK>>
+    * aprobado_por_id : BIGINT <<FK>>
+    * motivo_rectificacion : TEXT
+    * importe_ajustado : NUMERIC(12,2)
+  }
+  entity periodo_administrativo {
+    * id : BIGINT <<PK>>
+    --
+    * anio : SMALLINT
+    * trimestre : SMALLINT
+    * estado : VARCHAR(22)
+    fecha_cierre : TIMESTAMPTZ
+    * autorizacion_superior : BOOLEAN
+  }
+}
+
+package "Cobros" #F3ECFA {
+  entity movimiento_cobro {
+    * id : BIGINT <<PK>>
+    --
+    * fuente_pasarela : VARCHAR(10)
+    * referencia_transaccion : VARCHAR(100)
+    * fecha_operacion : TIMESTAMPTZ
+    * importe_recibido : NUMERIC(12,2)
+    * moneda : CHAR(3)
+    concepto_banco : TEXT
+  }
+  entity conciliacion_cobro {
+    * id : BIGINT <<PK>>
+    --
+    * movimiento_cobro_id : BIGINT <<FK,UK>>
+    * factura_id : BIGINT <<FK>>
+    * tipo : VARCHAR(10)
+    * discrepancia_importe : NUMERIC(12,2)
+    * fecha : TIMESTAMPTZ
+    * estado : VARCHAR(10)
+  }
+}
+
+package "Tareas" #EEF7EE {
+  entity tarea {
+    * id : BIGINT <<PK>>
+    --
+    * ejecutor : VARCHAR(7)
+    * estado : VARCHAR(10)
+    * fecha_creacion : TIMESTAMPTZ
+    fecha_aplazada_fin : DATE
+  }
+  entity delegacion_temporal {
+    * tarea_id : BIGINT <<PK,FK>>
+    --
+    * cliente_id : BIGINT <<FK>>
+    * usuario_origen_id : BIGINT <<FK>>
+    * usuario_delegado_id : BIGINT <<FK>>
+    * fecha_inicio : TIMESTAMPTZ
+    * estado : VARCHAR(10)
+  }
+  entity revision_anual_tarifa {
+    * tarea_id : BIGINT <<PK,FK>>
+    --
+    * cliente_id : BIGINT <<FK>>
+    * tarifa_calculada_id : BIGINT <<FK>>
+    tarifa_aprobada_id : BIGINT <<FK>>
+    aprobado_por_id : BIGINT <<FK>>
+    facturacion_verificada : NUMERIC(14,2)
+    * estado : VARCHAR(10)
+    fecha_revision : TIMESTAMPTZ
+  }
+  entity solicitud_aprobacion {
+    * tarea_id : BIGINT <<PK,FK>>
+    --
+    * cliente_id : BIGINT <<FK>>
+    factura_id : BIGINT <<FK>>
+    * solicitante_id : BIGINT <<FK>>
+    aprobador_id : BIGINT <<FK>>
+    * tipo_operacion : VARCHAR(22)
+    valor_solicitado : NUMERIC(12,2)
+    * motivo : TEXT
+    resolucion : VARCHAR(9)
+    fecha_resolucion : TIMESTAMPTZ
+  }
+  entity disputa_deuda {
+    * tarea_id : BIGINT <<PK,FK>>
+    --
+    * factura_id : BIGINT <<FK>>
+    * cliente_id : BIGINT <<FK>>
+    * empleado_id : BIGINT <<FK>>
+    * motivo_reclamacion : TEXT
+    * fecha_revision_prevista : DATE
+    * recordatorios_congelados : BOOLEAN
+  }
+  entity incidencia_facturacion {
+    * tarea_id : BIGINT <<PK,FK>>
+    --
+    * cliente_id : BIGINT <<FK>>
+    factura_id : BIGINT <<FK>>
+    * usuario_id : BIGINT <<FK>>
+    * tipo : VARCHAR(18)
+    * prioridad : VARCHAR(5)
+    * pausar_recordatorios : BOOLEAN
+  }
+  entity comentario_incidencia {
+    * id : BIGINT <<PK>>
+    --
+    * incidencia_id : BIGINT <<FK>>
+    * nivel_visibilidad : VARCHAR(14)
+    * mensaje : TEXT
+    * fecha_hora : TIMESTAMPTZ
+  }
+}
+
+package "Movimientos y notificaciones" #EFEFEF {
+  entity notificacion {
+    * id : BIGINT <<PK>>
+    --
+    * tipo : VARCHAR(8)
+    * asunto : VARCHAR(200)
+    * texto : TEXT
+    * fecha : TIMESTAMPTZ
+    usuario_destinatario_id : BIGINT <<FK>>
+    leida : BOOLEAN
+  }
+  entity movimiento {
+    * id : BIGINT <<PK>>
+    --
+    * tipo : VARCHAR(34)
+    * fecha_hora : TIMESTAMPTZ
+    usuario_id : BIGINT <<FK>>
+    entidad_afectada : VARCHAR(40)
+    id_entidad_afectada : BIGINT
+    detalle : TEXT
+  }
+  entity envio_comunicacion {
+    * movimiento_id : BIGINT <<PK,FK>>
+    --
+    * notificacion_id : BIGINT <<FK>>
+    factura_id : BIGINT <<FK>>
+    * contacto_id : BIGINT <<FK>>
+    * tipo_mensaje : VARCHAR(12)
+    * estado : VARCHAR(16)
+    * es_reintento : BOOLEAN
+    * numero_intento : SMALLINT
+  }
+  entity registro_auditoria {
+    * movimiento_id : BIGINT <<PK,FK>>
+    --
+    * tabla_afectada : VARCHAR(40)
+    * id_registro_afectado : VARCHAR(40)
+    * tipo_accion : VARCHAR(14)
+    valor_anterior : JSONB
+    valor_nuevo : JSONB
+  }
+  entity importacion_csv {
+    * movimiento_id : BIGINT <<PK,FK>>
+    --
+    * nombre_archivo : VARCHAR(255)
+    * filas_totales : INTEGER
+    * filas_correctas : INTEGER
+    * filas_con_error : INTEGER
+    * estado : VARCHAR(10)
+  }
+}
+
+package "Sistema" #FFFBE0 {
+  entity informe {
+    * id : BIGINT <<PK>>
+    --
+    * usuario_id : BIGINT <<FK>>
+    cliente_id : BIGINT <<FK>>
+    * tipo : VARCHAR(40)
+    parametros : JSONB
+    * fecha_generacion : TIMESTAMPTZ
+    * formato : VARCHAR(3)
+  }
+  entity ajustes_sistema {
+    * id : BIGINT <<PK>>
+    --
+    * clave : VARCHAR(60)
+    * valor : TEXT
+    * tipo : VARCHAR(20)
+    * fecha_efecto : DATE
+    * estado : VARCHAR(10)
+  }
+}
+
+' Relaciones (el simbolo junto a cada entidad indica cuantas hay por cada una de la otra).
+cliente ||--o{ asignacion_cliente : cliente
+usuario ||--o{ asignacion_cliente : usuario
+usuario |o--o{ cliente : usuario_responsable
+cliente ||--o{ cliente_contacto : cliente
+contacto ||--o{ cliente_contacto : contacto
+cliente ||--o{ cliente_etiqueta : cliente
+etiqueta ||--o{ cliente_etiqueta : etiqueta
+cliente ||--o| suscripcion : cliente
+tarifa_rango ||--o{ suscripcion : tarifa_rango
+suscripcion ||--o{ excepcion_comercial : suscripcion
+cliente ||--o{ factura : cliente
+suscripcion |o--o{ factura : suscripcion
+concepto ||--o{ factura : concepto
+factura ||--o| factura_rectificativa : factura
+factura ||--o{ factura_rectificativa : factura_original
+movimiento_cobro ||--o| conciliacion_cobro : movimiento_cobro
+factura ||--o{ conciliacion_cobro : factura
+tarea ||--o| delegacion_temporal : tarea
+cliente ||--o{ delegacion_temporal : cliente
+tarea ||--o| revision_anual_tarifa : tarea
+cliente ||--o{ revision_anual_tarifa : cliente
+tarifa_rango ||--o{ revision_anual_tarifa : tarifa_calculada
+tarifa_rango |o--o{ revision_anual_tarifa : tarifa_aprobada
+tarea ||--o| solicitud_aprobacion : tarea
+cliente ||--o{ solicitud_aprobacion : cliente
+factura |o--o{ solicitud_aprobacion : factura
+usuario ||--o{ solicitud_aprobacion : solicitante
+usuario |o--o{ solicitud_aprobacion : aprobador
+tarea ||--o| disputa_deuda : tarea
+factura ||--o{ disputa_deuda : factura
+cliente ||--o{ disputa_deuda : cliente
+tarea ||--o| incidencia_facturacion : tarea
+cliente ||--o{ incidencia_facturacion : cliente
+factura |o--o{ incidencia_facturacion : factura
+incidencia_facturacion ||--o{ comentario_incidencia : incidencia
+usuario |o--o{ notificacion : usuario_destinatario
+usuario |o--o{ movimiento : usuario
+movimiento ||--o| envio_comunicacion : movimiento
+notificacion ||--o{ envio_comunicacion : notificacion
+factura |o--o{ envio_comunicacion : factura
+contacto ||--o{ envio_comunicacion : contacto
+movimiento ||--o| registro_auditoria : movimiento
+movimiento ||--o| importacion_csv : movimiento
+cliente |o--o{ informe : cliente
+
+note bottom of factura
+  UNIQUE (serie, numero_secuencial)
+  UNIQUE (suscripcion_id, mes_facturado) si tipo = RECURRENTE
+  estado_documento: BORRADOR, EMITIDA, RECTIFICADA, ANULADA
+  estado_cobro: PENDIENTE, PAGADA, INCOBRABLE
+  En borrador: numero_serie_completo y estado_cobro nulos
+end note
+
+note bottom of movimiento
+  13 tipos (uno por subclase)
+  Solo INSERT y SELECT para la aplicacion
+end note
+
+note bottom of tarea
+  Cada subclase usa como PK la PK de tarea
+end note
+
+@enduml
