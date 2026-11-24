@@ -1,0 +1,40 @@
+@startuml
+!pragma layout smetana
+skinparam style strictuml
+skinparam classAttributeIconSize 0
+
+interface ObservadorReloj <<interface>> {
+  +alTic(fecha : Date) : void
+}
+
+class Reloj <<singleton>> {
+  -{static} instancia : Reloj
+  -observadores : List<ObservadorReloj>
+  -Reloj()
+  +{static} obtenerInstancia() : Reloj
+  +iniciar() : void
+  +programar(proceso : String, frecuencia : String) : void
+  +suscribir(o : ObservadorReloj) : void
+  +tic() : void
+}
+
+class GestorTareas <<control>> {
+  +alTic(fecha : Date) : void
+  +devolverDelegacionesCaducadas() : void
+}
+
+class Gestor_Facturas <<control>> {
+  +alTic(fecha : Date) : void
+  +generarRecurrentes(fecha : Date) : void
+}
+
+class GestorCobros <<control>> {
+  +alTic(fecha : Date) : void
+  +enviarRecordatorios(fecha : Date) : void
+}
+
+Reloj o--> "0..*" ObservadorReloj
+ObservadorReloj <|.. GestorTareas
+ObservadorReloj <|.. Gestor_Facturas
+ObservadorReloj <|.. GestorCobros
+@enduml

@@ -1,0 +1,28 @@
+@startuml
+!pragma layout smetana
+skinparam style strictuml
+skinparam classAttributeIconSize 0
+
+class Reloj <<singleton>> {
+  -{static} instancia : Reloj
+  -Reloj()
+  +{static} obtenerInstancia() : Reloj
+  +iniciar() : void
+  +programar(proceso : String, frecuencia : String) : void
+  +tic() : void
+}
+
+class GestorTareas <<control>>
+class Gestor_Facturas <<control>>
+class GestorCobros <<control>>
+
+GestorTareas ..> Reloj : obtenerInstancia()
+Gestor_Facturas ..> Reloj : obtenerInstancia()
+GestorCobros ..> Reloj : obtenerInstancia()
+
+note right of Reloj
+  Constructor privado:
+  nadie hace new Reloj().
+  Todos usan la misma instancia.
+end note
+@enduml

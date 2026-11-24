@@ -1,0 +1,41 @@
+@startuml
+!pragma layout smetana
+skinparam style strictuml
+skinparam nodeStyle rectangle
+skinparam shadowing false
+
+node "PC del usuario" <<dispositivo>> as PC {
+  node "Navegador web\n(Chrome, Firefox, Safari)" <<entorno de ejecución>> as NAV {
+    artifact "Interfaz web\n(bandeja, fichas, historiales)" as UI
+  }
+}
+
+node "Servidor de aplicación" <<servidor>> as APP {
+  node "Entorno de ejecución" <<entorno de ejecución>> as RUN {
+    artifact "turbine-app\n(gestores, dominio, Reloj)" as TAPP
+    artifact "configuración y secretos" as CFG
+  }
+}
+
+node "Servidor de base de datos" <<servidor>> as DB {
+  node "PostgreSQL" <<entorno de ejecución>> as PG {
+    artifact "esquema turbine\n(30 tablas)" as ESQ
+  }
+}
+
+node "Servidor de respaldo" <<servidor>> as BK {
+  node "PostgreSQL" <<entorno de ejecución>> as PG2 {
+    artifact "copia de seguridad" as COPIA
+  }
+}
+
+node "Servicio de correo" <<externo>> as MAIL
+node "Servicio de WhatsApp" <<externo>> as WA
+
+PC -- APP : HTTPS
+APP -- DB : SQL (TCP)
+DB -- BK : replicación / backup
+APP -- MAIL : SMTP
+APP -- WA : HTTPS (API)
+
+@enduml
