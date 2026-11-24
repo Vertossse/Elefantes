@@ -1,0 +1,61 @@
+@startuml CU03_Asignar_clientes
+title CU-03: Asignar clientes (asignación estándar y migración masiva)
+autonumber
+actor "(Super)administrador\n(AD / SA)" as A
+boundary "FichaCliente" as FC
+control "GestorAcceso" as GA
+participant "RepositorioUsuarios" as RU <<repository>>
+participant "AjustesSistema" as AJ <<singleton>>
+entity "AsignacionCliente" as AC
+participant "RepositorioClientes" as RC <<repository>>
+control "GestorMovimientos" as GM
+
+== Flujo principal ==
+A -> FC : abre el perfil del cliente y selecciona asignar / reasignar
+FC --> A : solicita el usuario destino y su confirmación
+A -> FC : introduce el usuario destino y confirma
+FC -> GA : asignarCliente(cliente, usuario)
+GA -> RU : buscarPorId(usuario)
+RU --> GA : usuario destino
+GA -> AJ : obtener(limiteClientesPorUsuario)
+AJ --> GA : límite de clientes por usuario
+alt datos incorrectos (excepción 1)
+  GA --> FC : usuario no válido
+  FC --> A : aviso; vuelve a la pantalla anterior para reintentar
+else el destino superaría su límite de clientes (excepción 2)
+  GA --> FC : límite de asignaciones superado
+  FC --> A : aviso; vuelve a la pantalla anterior para elegir otro usuario
+else asignación válida
+  GA -> AC : cierra la asignación vigente (fechaFin), si existía
+  GA -> AC : crea la nueva asignación (motivo Alta o Reasignacion)
+  GA -> RC : guardar(cliente)
+  note over GA,RC : Las responsabilidades de la asignación anterior pasan a la nueva
+  GA -> GM : registrarMovimiento(AsignacionDesasignacion, usuario, detalle, AsignacionCliente, id)
+  GA -> GM : registrarAuditoria(tabla, id, Reasignacion, usuario, antes, despues)
+  GA --> FC : asignación realizada
+  FC --> A : la ficha refleja el nuevo usuario asignado
+end
+
+== Flujo alternativo 1: cancelación ==
+A -> FC : cancela antes de introducir los datos correctos
+FC --> A : vuelve a la ficha sin cambios
+
+== Flujo alternativo 3: migración masiva (al desactivar un usuario) ==
+A -> FC : indica el usuario que heredará los clientes
+FC -> GA : migrarCartera(origen, destino)
+GA -> RU : buscarPorId(destino)
+RU --> GA : usuario destino
+GA -> AJ : obtener(limiteClientesPorUsuario)
+AJ --> GA : límite de clientes por usuario
+alt datos incorrectos o el destino superaría su límite
+  GA --> FC : migración rechazada
+  FC --> A : aviso; vuelve a la pantalla anterior
+else migración válida
+  loop por cada cliente asignado al usuario origen
+    GA -> AC : cierra la asignación del origen y crea la del destino (motivo MigracionMasiva)
+    GA -> RC : guardar(cliente)
+  end
+  GA -> GM : registrarMovimiento(AsignacionDesasignacion, usuario, detalle, AsignacionCliente, id)
+  GA --> FC : cartera migrada con sus responsabilidades
+end
+@enduml

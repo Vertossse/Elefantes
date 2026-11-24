@@ -1,0 +1,50 @@
+@startuml CU07_Dar_de_baja_cliente
+title CU-07: Dar de baja a un cliente
+autonumber
+actor "Empleado (AD / SA / UO responsable)" as U
+boundary "FichaCliente" as FC
+boundary "VentanaConfirmación" as VC
+control "GestorClientes" as GC
+participant "AutenticadorValidador" as AV <<static>>
+participant "RepositorioClientes" as RC <<repository>>
+entity "Cliente" as CL
+control "GestorMovimientos" as GM
+control "GestorTrabajo" as GT
+
+== Flujo principal ==
+U -> FC : accede a la ficha y selecciona dar de baja
+FC -> VC : solicita fecha efectiva, motivo y confirmación
+VC --> U : informa de las consecuencias de la baja
+U -> VC : indica fecha efectiva y motivo
+alt no confirma (flujo alternativo 1)
+  U -> VC : cancela
+  VC --> FC : el cliente sigue activo sin cambios
+else confirma
+  U -> VC : confirma
+  VC -> GC : darDeBaja(cliente, motivo)
+  GC -> AV : comprobarPermiso(usuario, darDeBaja, cliente)
+  GC -> RC : buscarPorNif(nif)
+  RC --> GC : cliente
+  alt el cliente ya figura como inactivo (excepción: doble petición, PRO-02)
+    GC --> FC : operación rechazada
+    FC --> U : aviso; no se repite la baja
+  else cliente activo
+    GC -> CL : darDeBaja(motivo, fecha)
+    note over GC,CL : Borrado lógico (BajaLogica) desde la fecha efectiva;\nse detiene la facturación recurrente futura
+    GC -> RC : guardar(cliente)
+    note over GC,RC : Las facturas emitidas pendientes o impagadas anteriores\nmantienen su flujo de seguimiento y recobro
+    GC -> GM : registrarMovimiento(AltaBajaCliente, usuario, detalle, Cliente, nif)
+    GC -> GM : registrarAuditoria(tabla, id, Modificacion, usuario, antes, despues)
+    GC --> FC : baja registrada
+    FC --> U : el cliente aparece en estado de baja
+  end
+end
+
+== Flujo alternativo 2: baja originada tras aviso por API (CU-31) ==
+note over U,GT : El aviso externo generó una tarea pendiente para el responsable del cliente
+U -> GT : abre la tarea pendiente desde el trabajo diario
+GT --> U : acceso a la ficha del cliente
+ref over U,GC : flujo principal del CU-07
+GC -> GT : atenderTarea()
+GT --> U : la tarea queda marcada como resuelta
+@enduml

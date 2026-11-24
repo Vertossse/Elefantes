@@ -1,0 +1,46 @@
+@startuml CU02_5_Desactivar_empleados
+title CU-02.5: Desactivar empleados
+autonumber
+actor "(Super)administrador\n(AD / SA)" as A
+boundary "InterfazAdmin /\nInterfazSuperadmin" as UI
+boundary "VentanaConfirmación" as VC
+control "GestorAcceso" as GA
+participant "RepositorioUsuarios" as RU <<repository>>
+participant "AjustesSistema" as AJ <<singleton>>
+entity "Usuario" as US
+control "GestorMovimientos" as GM
+
+== Flujo principal ==
+A -> UI : selecciona el usuario y la opción desactivar cuenta
+UI -> VC : solicita confirmación
+VC --> A : ¿Seguro? Se muestran los efectos de la desactivación
+alt el (super)administrador confirma
+  A -> VC : confirma
+  VC -> GA : desactivarUsuario(id)
+  GA -> RU : buscarPorId(id)
+  RU --> GA : usuario
+  GA -> AJ : obtener(limiteClientesPorUsuario)
+  AJ --> GA : límite de clientes por usuario
+  alt no hay otro usuario que pueda recibir sus clientes (excepción: falta de usuarios)
+    GA --> UI : desactivación no permitida
+    UI --> A : aviso: pocos usuarios o exceso de clientes
+    UI --> A : vuelve a la plataforma de usuarios
+  else existe un usuario receptor
+    GA --> UI : solicita el usuario que heredará los clientes
+    A -> UI : indica el nuevo responsable
+    UI -> GA : desactivarUsuario(id, nuevoResponsable)
+    ref over GA,RU : CU-03 migración masiva: migrarCartera(origen, destino)
+    GA -> US : desactivar()
+    GA -> RU : guardar(usuario)
+    GA -> GM : registrarMovimiento(AltaBajaUsuario, usuario, detalle, Usuario, id)
+    GA -> GM : registrarAuditoria(tabla, id, Modificacion, usuario, antes, despues)
+    GA --> UI : cuenta desactivada
+    UI --> A : vuelve a la página principal
+  end
+else cancelación
+  A -> VC : cancela
+  VC --> UI : cierra la ventana
+  UI --> A : vuelve a la pantalla de usuarios
+end
+note over GM : Los movimientos del usuario desactivado se conservan\ny siguen asociados a su correo
+@enduml

@@ -1,0 +1,47 @@
+@startuml CU01_5_Cierre_de_sesion
+title CU-01.5: Cierre de sesión
+autonumber
+actor "Empleado (CE)" as U
+boundary "Interfaz (según rol)" as UI
+boundary "VentanaConfirmación" as VC
+control "GestorAcceso" as GA
+boundary "VentanaLoginCierre" as VL
+participant "Reloj" as RL <<singleton>>
+participant "AjustesSistema" as AJ <<singleton>>
+
+== Flujo principal ==
+U -> UI : selecciona cerrar sesión
+UI -> VC : muestra la ventana de confirmación
+VC --> U : ¿Seguro que desea cerrar la sesión?
+alt el usuario confirma
+  U -> VC : confirma
+  VC -> GA : cerrarSesion()
+  alt cierre posible
+    GA -> GA : finaliza la sesión del usuario
+    GA -> VL : muestra la interfaz solo con iniciar sesión
+    VL --> U : pantalla de inicio de sesión
+  else petición en segundo plano sin terminar o mala conexión (excepción)
+    GA --> VC : cierre aplazado hasta completar la petición
+  end
+else el usuario cancela (flujo alternativo 3)
+  U -> VC : cancela el cierre
+  VC --> UI : cierra la ventana
+  UI --> U : vuelve a la plataforma
+end
+
+== Flujo alternativo 1: cierre por inactividad ==
+RL -> GA : tic(): revisa la actividad de las sesiones
+GA -> AJ : obtener(tiempoInactividad)
+AJ --> GA : tiempo máximo configurado
+alt la inactividad supera el tiempo configurado
+  GA -> GA : cerrarPorInactividad()
+  GA -> VL : envía al usuario a la página de inicio de sesión
+  VL --> U : pantalla de inicio de sesión
+end
+
+== Flujo alternativo 2: cierre de ventana o pérdida de conexión ==
+U -> UI : cierra el navegador o pierde la conexión
+GA -> GA : detecta el abandono y cierra la sesión
+U -> VL : vuelve a la plataforma
+VL --> U : muestra la página de inicio de sesión
+@enduml

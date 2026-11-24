@@ -1,0 +1,48 @@
+@startuml CU06_Importar_CSV
+title CU-06: Importar datos desde CSV
+autonumber
+actor "(Super)administrador\n(AD / SA)" as A
+boundary "VentanaImportacion" as VI
+control "GestorClientes" as GC
+participant "AutenticadorValidador" as AV <<static>>
+participant "RepositorioClientes" as RC <<repository>>
+participant "RepositorioFacturas" as RF <<repository>>
+entity "ImportacionCSV" as IC
+control "GestorMovimientos" as GM
+
+== Flujo principal ==
+A -> VI : accede a la importación, selecciona el CSV e indica el tipo\n(clientes o histórico de facturas)
+VI -> GC : importarCSV(rutaArchivo)
+GC -> AV : comprobarPermiso(usuario, importarCSV, -)
+GC -> AV : validarCSV(archivo)
+alt archivo corrupto, vacío o sin las columnas mínimas (excepción)
+  AV --> GC : formato incompatible
+  GC --> VI : error con el detalle del fallo
+  VI --> A : mensaje de error; la carga se cancela
+else archivo válido
+  GC --> VI : mapeo de columnas y vista previa con avisos
+  VI --> A : pantalla de mapeo, vista previa, duplicados y filas con errores
+  A -> VI : ajusta el mapeo y revisa los avisos
+  alt cancela la importación (flujo alternativo 1)
+    A -> VI : cancela
+    VI --> A : no se modifica la base de datos
+  else confirma
+    opt hay duplicados o filas erróneas (flujo alternativo 2)
+      A -> VI : elige importar solo los registros correctos
+    end
+    loop por cada registro válido
+      alt tipo clientes
+        GC -> AV : validarNIF() y validarDatosFiscales()
+        GC -> RC : guardar(cliente)
+      else tipo histórico de facturas
+        GC -> RF : guardar(factura en estado migrada)
+        note over GC,RF : No se envía por correo ni consume la numeración de las series actuales
+      end
+    end
+    GC -> IC : crea ImportacionCSV (nombreArchivo, filasTotales, filasCorrectas, filasConError, estado)
+    GC -> GM : registrarAuditoria(tabla, id, Alta, usuario, antes, despues)
+    GC --> VI : resumen de la importación
+    VI --> A : resumen detallado (importados, omitidos y con error)
+  end
+end
+@enduml

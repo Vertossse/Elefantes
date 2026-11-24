@@ -1,0 +1,47 @@
+@startuml CU03b_Migracion_temporal
+title CU-03: Asignar clientes (migración temporal y devolución)
+autonumber
+actor "(Super)administrador\n(AD / SA)" as A
+boundary "FichaCliente" as FC
+control "GestorAcceso" as GA
+entity "DelegacionTemporal" as DT
+entity "AsignacionCliente" as AC
+participant "RepositorioUsuarios" as RU <<repository>>
+participant "Reloj" as RL <<singleton>>
+control "GestorMovimientos" as GM
+
+== Flujo alternativo 2: migración temporal (delegación) ==
+A -> FC : selecciona delegación temporal, usuario delegado y fecha de caducidad
+FC -> GA : delegarTemporal(cliente, usuario, fechaFin)
+GA -> RU : buscarPorId(usuario)
+RU --> GA : usuario delegado
+alt usuario no válido o con exceso de clientes (excepciones 1 y 2)
+  GA --> FC : delegación rechazada
+  FC --> A : aviso; vuelve a la pantalla anterior
+else delegación válida
+  GA -> DT : crea DelegacionTemporal (Tarea de Sistema, fechaFin)
+  GA -> DT : activar()
+  GA -> AC : cierra la asignación vigente y crea la del delegado (motivo Delegacion)
+  note over GA,AC : El delegado hereda las responsabilidades solo durante el periodo
+  GA -> GM : registrarMovimiento(AsignacionDesasignacion, usuario, detalle, AsignacionCliente, id)
+  GA --> FC : delegación activa
+  FC --> A : confirmación
+end
+
+== Flujo de devolución (automático al llegar la fecha de caducidad) ==
+RL -> GA : tic(): devolverDelegacionesCaducadas()
+loop por cada delegación caducada
+  GA -> DT : estaVigente(fecha)
+  DT --> GA : no vigente
+  GA -> RU : buscarPorId(usuarioOrigen)
+  RU --> GA : usuario original
+  alt el usuario original está activo
+    GA -> DT : caducar()
+    GA -> AC : cierra la asignación del delegado y devuelve la del original (motivo Delegacion)
+    GA -> GM : registrarMovimiento(AsignacionDesasignacion, sistema, detalle, AsignacionCliente, id)
+  else el usuario original está desactivado (excepción 3)
+    GA -> DT : elimina la fecha de caducidad
+    note over GA,DT : La asignación del delegado pasa a ser permanente;\nsi el original se reactiva, la reasignación es manual
+  end
+end
+@enduml

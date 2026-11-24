@@ -1,0 +1,51 @@
+@startuml CU05_Gestionar_ficha_cliente
+title CU-05: Gestionar la ficha de un cliente
+autonumber
+actor "Empleado (AD / SA / UO asignado)" as U
+boundary "FichaCliente" as FC
+control "GestorClientes" as GC
+participant "AutenticadorValidador" as AV <<static>>
+participant "RepositorioClientes" as RC <<repository>>
+entity "Cliente" as CL
+entity "Contacto / Etiqueta" as CT
+control "GestorMovimientos" as GM
+
+== Consulta de la ficha ==
+U -> FC : accede a la ficha del cliente
+FC -> GC : buscar(filtro del cliente)
+GC -> AV : comprobarPermiso(usuario, consultarCliente, cliente)
+GC -> RC : buscarPorNif(nif)
+RC --> GC : cliente
+GC -> GM : consultarMovimientos(filtro del cliente)
+GM --> GC : movimientos
+GC --> FC : datos, contactos, etiquetas y línea temporal
+FC --> U : datos actuales y línea temporal de actividad
+
+alt solo consulta (flujo alternativo 2)
+  U -> FC : revisa la información y sale sin editar
+else edición de la ficha
+  U -> FC : edita datos, añade o desactiva contactos, asigna o quita etiquetas
+  alt cancelación (flujo alternativo 1)
+    U -> FC : descarta las modificaciones
+    FC --> U : la ficha mantiene sus datos originales
+  else confirma los cambios
+    U -> FC : confirma los cambios
+    FC -> GC : editarFicha(cliente, cambios)
+    GC -> AV : comprobarPermiso(), validarNIF(), validarDatosFiscales()
+    alt formato no válido, edición simultánea o doble envío (excepción 1)
+      GC --> FC : cambios rechazados (PRO-02)
+      FC --> U : aviso; se evita sobrescribir la ficha o duplicar contactos
+    else borra un dato fiscal obligatorio con facturación activa (excepción 2)
+      GC --> FC : restricción de borrado
+      FC --> U : aviso; no se deja la ficha en estado incoherente
+    else cambios válidos
+      GC -> CL : aplica los cambios de la empresa
+      GC -> CT : añadirContacto(), desactivarContacto(), etiquetar()
+      GC -> RC : guardar(cliente)
+      GC -> GM : registrarAuditoria(tabla, id, Modificacion, usuario, antes, despues)
+      GC --> FC : ficha actualizada
+      FC --> U : datos y línea temporal actualizados
+    end
+  end
+end
+@enduml

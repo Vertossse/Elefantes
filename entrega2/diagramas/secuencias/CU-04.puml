@@ -1,0 +1,66 @@
+@startuml CU04_Registrar_cliente
+title CU-04: Registrar un cliente
+autonumber
+actor "Empleado (AD / SA / UO con permiso)" as U
+boundary "FichaCliente" as FC
+control "GestorClientes" as GC
+participant "AutenticadorValidador" as AV <<static>>
+participant "RepositorioClientes" as RC <<repository>>
+entity "Cliente" as CL
+control "GestorMovimientos" as GM
+control "GestorSuscripciones" as GS
+
+== Flujo principal ==
+U -> FC : selecciona registrar un nuevo cliente
+FC --> U : formulario: datos imprescindibles para facturar y datos opcionales
+U -> FC : introduce los datos de la empresa y de uno o varios contactos con su función
+FC --> U : resumen de la información para revisarla
+U -> FC : confirma la operación
+FC -> GC : registrarCliente(datos, contactos)
+GC -> AV : comprobarPermiso(usuario, registrarCliente, cliente)
+GC -> AV : validarNIF() y validarDatosFiscales()
+GC -> RC : buscarPorNif(nif)
+RC --> GC : cliente existente o ninguno
+alt NIF de un cliente activo (excepción 1: duplicado activo)
+  GC --> FC : duplicado
+  FC --> U : aviso de duplicidad; no se crea la ficha
+else NIF nuevo o de un antiguo cliente
+  alt NIF de un cliente de baja o anonimizado (flujo alternativo 2)
+    GC --> FC : ofrece reactivar la ficha
+    FC --> U : recuperar datos e historial previo
+    U -> FC : acepta, revisa o actualiza los datos y confirma
+    FC -> GC : reactivarCliente(nif)
+    GC -> CL : reactivar()
+    note over GC,CL : Se pospone indefinidamente cualquier borrado definitivo
+  else cliente nuevo
+    GC -> CL : crea Cliente y sus Contacto (estado PendienteActivacion)
+    opt faltan datos fiscales imprescindibles (flujo alternativo 3)
+      GC -> CL : tieneDatosFiscalesCompletos()
+      note over GC,CL : La ficha se guarda marcada como incompleta para emitir\nfacturas o activar recurrencias (CU-08 y CU-13)
+    end
+  end
+  GC -> RC : guardar(cliente)
+  GC -> GM : registrarMovimiento(AltaBajaCliente, usuario, detalle, Cliente, nif)
+  GC -> GM : registrarAuditoria(tabla, id, Alta, usuario, antes, despues)
+  GC --> FC : cliente registrado
+  FC --> U : ficha disponible para asignar, gestionar o vincular a una suscripción
+end
+
+== Flujo alternativo 4: activación inmediata de la suscripción (extensión CU-08) ==
+opt el usuario activa la suscripción durante el registro
+  U -> FC : configura y activa la suscripción
+  FC -> GS : crearSuscripcion(cliente, datos)
+  GS --> FC : suscripción creada
+end
+note over U,GS : Si no se activa, el cliente queda en estado pendiente de activación hasta el CU-08
+
+== Flujo alternativo 1: cancelación ==
+U -> FC : cancela antes de la confirmación definitiva
+FC --> U : se descartan los datos sin guardar cambios
+
+== Excepción 2: doble clic o concurrencia ==
+U -> FC : pulsa confirmar repetidamente (o dos usuarios registran el mismo cliente)
+FC -> GC : registrarCliente(datos, contactos)
+GC -> RC : buscarPorNif(nif)
+GC --> FC : petición redundante rechazada (PRO-02)
+@enduml

@@ -1,0 +1,50 @@
+@startuml CU01_Inicio_de_sesion
+title CU-01: Inicio de sesión
+autonumber
+actor "Empleado (CE)" as U
+boundary "VentanaLoginCierre" as VL
+control "GestorAcceso" as GA
+participant "RepositorioUsuarios" as RU <<repository>>
+entity "Usuario" as US
+control "GestorElementosVisuales" as GEV
+boundary "Interfaz (según rol)" as UI
+participant "Correo" as CO <<Notificacion>>
+
+== Flujo principal ==
+U -> VL : selecciona iniciar sesión
+VL --> U : solicita correo y contraseña
+U -> VL : introduce correo y contraseña
+VL -> GA : iniciarSesion(email, pass)
+GA -> RU : buscar(filtro por correo)
+RU --> GA : usuario
+GA -> US : autenticar(password)
+US --> GA : resultado
+alt credenciales correctas
+  GA -> US : actualiza ultimoAcceso
+  GA -> GEV : construirInterfaz(usuario)
+  GEV -> UI : muestra la interfaz según el rol\n(clientes asignados, últimos movimientos\ny facturas pagadas o impagadas)
+  UI --> U : interfaz principal
+else credenciales incorrectas (flujo de excepción)
+  GA --> VL : inicio de sesión fallido
+  VL --> U : "Correo electrónico o contraseña incorrecta"
+  note over U,VL : El usuario puede reintentar, recuperar la contraseña o cancelar
+end
+
+== Flujo alternativo 1: recuperación de la contraseña ==
+U -> VL : selecciona recuperar contraseña
+VL -> GA : recuperarPassword(email)
+GA -> RU : buscar(filtro por correo)
+RU --> GA : usuario
+GA -> CO : crea y envía el aviso de cambio de contraseña
+CO --> U : correo: alguien ha solicitado cambiar la contraseña
+U -> VL : acepta y establece una nueva contraseña
+VL -> GA : cambiarPassword(nueva)
+GA -> US : cambiarPassword(nueva)
+GA -> RU : guardar(usuario)
+GA --> VL : cuenta actualizada
+note over U,VL : Se vuelve al inicio de sesión (flujo principal)
+
+== Flujo alternativo 2: cancelación ==
+U -> VL : cancela el inicio de sesión
+VL --> U : vuelve a la pantalla de inicio
+@enduml

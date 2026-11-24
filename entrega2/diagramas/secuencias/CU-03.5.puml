@@ -1,0 +1,50 @@
+@startuml CU03_5_Quitar_asignaciones
+title CU-03.5: Quitar asignaciones de clientes
+autonumber
+actor "(Super)administrador\n(AD / SA)" as A
+boundary "FichaCliente" as FC
+boundary "VentanaConfirmación" as VC
+control "GestorAcceso" as GA
+participant "RepositorioUsuarios" as RU <<repository>>
+entity "AsignacionCliente" as AC
+control "GestorMovimientos" as GM
+
+== Flujo principal ==
+A -> FC : selecciona el cliente cuya asignación se elimina
+FC -> VC : solicita confirmación
+VC --> A : ¿Confirma quitar la asignación?
+alt confirma
+  A -> VC : confirma
+  VC --> FC : continuar
+  FC --> A : solicita el nuevo usuario al que se reasigna el cliente
+  A -> FC : introduce el nuevo usuario
+  FC -> GA : quitarAsignacion(cliente)
+  GA -> RU : buscarPorId(nuevoUsuario)
+  RU --> GA : usuario destino
+  alt datos incorrectos (excepción 1)
+    GA --> FC : usuario no válido
+    FC --> A : aviso; vuelve a la pantalla anterior
+  else no hay ningún usuario receptor posible (excepción 3)
+    GA --> FC : transferencia imposible
+    FC --> A : no se permite quitar la asignación actual
+  else reasignación válida
+    GA -> AC : cierra la asignación del usuario original (fechaFin)
+    note over GA,AC : El original pierde la información, los movimientos\ny las responsabilidades del cliente
+    GA -> GA : asignarCliente(cliente, nuevoUsuario)
+    ref over GA,AC : CU-03 flujo principal, sin volver a introducir los datos
+    GA -> GM : registrarMovimiento(AsignacionDesasignacion, usuario, detalle, AsignacionCliente, id)
+    GA -> GM : registrarAuditoria(tabla, id, Reasignacion, usuario, antes, despues)
+    GA --> FC : asignación eliminada y cliente reasignado
+    FC --> A : la ficha muestra al nuevo usuario
+  end
+else cancelación
+  A -> VC : cancela
+  VC --> FC : sin cambios
+end
+
+== Flujo alternativo 2: eliminación tras caducidad de una delegación ==
+ref over GA,AC : CU-03 devolución: devolverDelegacionesCaducadas() (sin introducir datos)
+
+== Flujo alternativo 3: migración masiva ==
+ref over GA,AC : CU-03 migración masiva: migrarCartera(origen, destino) al desactivar un usuario
+@enduml

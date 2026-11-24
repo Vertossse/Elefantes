@@ -1,0 +1,53 @@
+@startuml CU02_Crear_empleados
+title CU-02: Crear o invitar empleados
+autonumber
+actor "(Super)administrador\n(AD / SA)" as A
+boundary "InterfazAdmin /\nInterfazSuperadmin" as UI
+control "GestorAcceso" as GA
+participant "AutenticadorValidador" as AV <<static>>
+participant "RepositorioUsuarios" as RU <<repository>>
+entity "Usuario" as US
+control "GestorMovimientos" as GM
+
+== Flujo principal ==
+A -> UI : selecciona registrar un nuevo empleado
+UI --> A : solicita correo y contraseña del empleado
+A -> UI : introduce correo y contraseña
+UI -> GA : crearUsuario(datos)
+GA -> AV : comprobarPermiso(usuario, crearUsuario, -)
+GA -> AV : validarCorreo(email) y validarPassword(pass)
+alt correo inexistente o sin dominio TurbineH (excepción)
+  AV --> GA : datos erróneos
+  GA --> UI : operación cancelada
+  UI --> A : "El correo introducido no existe o no tiene el dominio correcto"
+  UI --> A : vuelve a la pantalla principal
+else correo con formato válido
+  GA -> RU : buscar(filtro por correo)
+  RU --> GA : usuario existente o ninguno
+  alt correo ya registrado y activo (excepción)
+    GA --> UI : operación cancelada
+    UI --> A : "El correo introducido ya ha sido registrado previamente"
+    UI --> A : vuelve a la pantalla principal
+  else correo nuevo o de una cuenta desactivada
+    GA --> UI : solicita el rol (AD o UO)
+    UI --> A : elegir rol del nuevo empleado
+    A -> UI : asigna el rol
+    UI -> GA : crearUsuario(datos, rol)
+    alt correo nuevo
+      GA -> US : crea Usuario (UsuarioOperativo o Administrador)
+    else cuenta desactivada previamente
+      GA -> US : reactivar()
+      note over GA,US : Recupera el historial de movimientos del empleado;\nsus clientes no se reasignan por defecto
+    end
+    GA -> RU : guardar(usuario)
+    GA -> GM : registrarMovimiento(AltaBajaUsuario, usuario, detalle, Usuario, id)
+    GA -> GM : registrarAuditoria(tabla, id, Alta, usuario, antes, despues)
+    GA --> UI : empleado registrado
+    UI --> A : confirmación del alta
+  end
+end
+
+== Flujo alternativo: cancelación ==
+A -> UI : cancela durante la introducción de datos o la elección de rol
+UI --> A : no se crea ninguna cuenta y vuelve a la pantalla principal
+@enduml
