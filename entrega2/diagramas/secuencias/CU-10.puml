@@ -1,0 +1,89 @@
+@startuml SEC-10
+skinparam style strictuml
+skinparam maxMessageSize 180
+autonumber
+title SEC-10 - Solicitud de una excepción comercial
+
+actor "Usuario\n(UO / AD / SA)"             as Usuario
+boundary "VentanaSuscripcion"               as Ventana
+control "GestorSuscripciones"               as GS
+control "GestorAprobaciones"                as GA
+control "AutenticadorValidador"             as AV
+control "GestorMovimientos"                 as GM
+entity "Suscripcion"                        as Suscripcion
+entity "ExcepcionComercial"                 as Excepcion
+database "RepositorioSuscripciones"         as RS
+database "RepositorioSolicitudesAprobacion" as RSA
+database "RepositorioUsuarios"              as RU
+
+Usuario -> Ventana : abrir suscripción del cliente
+Ventana -> GS : obtenerSuscripcion(cliente)
+GS -> RS : buscarPorCliente(cliente)
+RS --> GS : suscripcion
+GS --> Ventana : suscripcion
+Ventana --> Usuario : mostrarSuscripcion(suscripcion)
+
+Usuario -> Ventana : solicitar excepción comercial
+Ventana --> Usuario : mostrarTiposExcepcion()
+Usuario -> Ventana : introducir tipo, valor, periodo y motivo
+Ventana -> GS : calcularEfecto(suscripcion, datosExcepcion)
+GS -> Excepcion : crear(tipo, valor, desde, hasta)
+GS -> GS : calcularEfecto(suscripcion, excepcionBorrador)
+GS --> Ventana : importeEfecto
+Ventana --> Usuario : mostrarResumenEfecto(importeEfecto)
+
+Usuario -> Ventana : confirmar()
+Ventana -> GS : solicitarExcepcionComercial(suscripcion, tipo, valor, desde, hasta, motivo, solicitante)
+GS -> AV : comprobarPermiso(usuario, "solicitarExcepcion", cliente)
+AV --> GS : boolean
+
+alt Sin permiso
+  GS --> Ventana : error de permisos
+  Ventana --> Usuario : mostrarErrorValidacion(mensaje)
+else Permiso concedido
+  GS -> GS : validarDatosExcepcion(tipo, valor, desde, hasta, motivo)
+  alt Datos incompletos o incoherentes
+    GS --> Ventana : error de validación
+    Ventana --> Usuario : mostrarErrorValidacion(mensaje)
+  else Datos válidos
+    GS -> Excepcion : crear(tipo, valor, desde, hasta)
+    GS -> Excepcion : solicitarAprobacion(cliente)
+    Excepcion --> GS : solicitud
+    GS -> GA : registrarSolicitud(solicitud)
+    GA -> GA : determinarAprobador(solicitud)
+    GA -> RU : buscarAdministradores()
+    RU --> GA : administradores
+    GA -> AV : validarImporteEnUmbral(valorSolicitado, umbral)
+    AV --> GA : boolean
+    alt Supera el umbral
+      GA -> RU : buscarSuperadministradores()
+      RU --> GA : superadministradores
+    end
+    GA -> AV : comprobarSeparacionFunciones(solicitante, aprobador)
+    AV --> GA : boolean
+    alt Separación de funciones exigida y mismo usuario
+      GA -> RU : buscarAdministradores()
+      RU --> GA : administradores
+      GA -> GA : elegirOtroAprobador()
+    end
+    GA -> GA : asignarAprobador(solicitud, aprobador)
+    GA -> RSA : guardar(solicitud)
+    GA -> GA : notificarAprobador(solicitud)
+    GA --> GS : solicitud
+    GS -> GM : registrarAuditoria("SolicitudAprobacion", idSolicitud, Alta, usuario, null, datos)
+    GM --> GS : registrado
+    GS --> Ventana : solicitud pendiente
+    Ventana --> Usuario : confirmación
+    note right of Ventana
+      La tarifa no cambia hasta que la solicitud
+      se apruebe en el CU-11.
+    end note
+  end
+end
+
+opt Cancelación de la solicitud
+  Usuario -> Ventana : cancelar()
+  Ventana --> Usuario : formulario cerrado sin registro
+end
+
+@enduml

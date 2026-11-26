@@ -1,0 +1,56 @@
+@startuml SEC-20
+skinparam style strictuml
+skinparam maxMessageSize 180
+autonumber
+title SEC-20 - Conciliación automática de cobros
+
+participant "Reloj"                     as Reloj <<singleton>>
+control "GestorCobros"                  as GC
+control "GestorSistema"                 as GSistema
+control "GestorTrabajo"                 as GT
+control "GestorMovimientos"             as GM
+entity "Conciliacion"                   as Conciliacion
+entity "Factura"                        as Factura
+entity "AjustesSistema"                 as Ajustes
+database "RepositorioMovimientosCobro"  as RMC
+database "RepositorioConciliaciones"    as RCon
+database "RepositorioFacturas"          as RF
+
+Reloj -> GC : conciliarAutomaticamente(movimientoCobro)
+GC -> GSistema : obtenerAjustes()
+GSistema -> Ajustes : obtener("margenConciliacion")
+Ajustes --> GSistema : margen
+GSistema --> GC : ajustes
+GC -> RMC : buscarPorReferencia(movimientoCobro.referenciaTransaccion)
+RMC --> GC : movimientoExistente
+
+alt Aviso duplicado
+  GC -> GC : descartar()
+else Aviso nuevo
+  GC -> RMC : guardar(movimientoCobro)
+  GC -> RF : buscarPendientes()
+  RF --> GC : facturas
+  GC -> GC : buscarFacturaCoincidente(movimientoCobro)
+  alt Sin coincidencia clara
+    GC -> GT : enviarNotificacion(notificacion, responsable)
+    GC -> GM : registrarAuditoria("MovimientoCobro", idMovimiento, Alta, sistema, null, datos)
+    note over GC : Caso dudoso: no se marca como pagada; se delega en CU-21.
+  else Coincidencia clara
+    GC -> GC : calcularDiferencia(movimientoCobro, factura)
+    alt Importe no coincidente
+      GC -> GT : enviarNotificacion(notificacion, responsable)
+      GC -> GM : registrarAuditoria("Conciliacion", idConciliacion, Conciliacion, sistema, null, diferencia)
+      note over GC : La factura sigue pendiente y se señala la diferencia.
+    else Importe coincidente
+      GC -> Conciliacion : crear(TipoConciliacion.Automatica, discrepancia, fecha, Conciliado, movimientoCobro, factura)
+      GC -> RCon : guardar(conciliacion)
+      GC -> Factura : marcarPagada()
+      GC -> RF : guardar(factura)
+      GC -> GT : enviarNotificacion(notificacion, responsable)
+      GC -> GM : registrarAuditoria("Conciliacion", idConciliacion, Conciliacion, sistema, null, datos)
+      GC --> Reloj : conciliación completada
+    end
+  end
+end
+
+@enduml
