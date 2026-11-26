@@ -3,8 +3,8 @@ title CU-24: Consultar el dashboard financiero
 
 actor Administrador
 participant Dashboard
-participant GestorCobros
-participant RepositorioCobros
+participant GestorInformes
+participant RepositorioInformes
 database Database
 
 == FASE 1: Mostrar los datos financieros (flujo principal) ==
@@ -14,15 +14,15 @@ Precondición: sesión iniciada con rol de administrador.
 Por defecto se muestra un periodo (p. ej. mensual).
 end note
 
-Dashboard -> GestorCobros : obtenerDatosFinancieros(Periodo)
+Dashboard -> GestorInformes : construirDashboard(Usuario, Periodo)
 note right
 Periodo: SEMANAL, MENSUAL o TRIMESTRAL.
 end note
-GestorCobros -> RepositorioCobros : obtenerDatosFinancieros(Periodo)
-RepositorioCobros -> Database : PedirDatosFinanciacion(Periodo)
-Database --> RepositorioCobros : Map<String, double>
-RepositorioCobros --> GestorCobros : Map<String, double>
-GestorCobros --> Dashboard : Map<String, double>
+GestorInformes -> RepositorioInformes : obtenerDatosFinancieros(Periodo)
+RepositorioInformes -> Database : PedirDatosFinanciacion(Periodo)
+Database --> RepositorioInformes : Map<String, double>
+RepositorioInformes --> GestorInformes : Map<String, double>
+GestorInformes --> Dashboard : Map<String, double>
 note right
 Cifras devueltas: facturado, cobrado, pendiente, vencido,
 tiempo medio de cobro, mayores deudas,
@@ -33,24 +33,24 @@ Dashboard --> Administrador : Visualización de las cifras
 == FASE 2: Cambiar el periodo de visualización ==
 opt El administrador elige otro periodo (semanal, mensual o trimestral)
   Administrador -> Dashboard : seleccionarPeriodo(Periodo)
-  Dashboard -> GestorCobros : obtenerDatosFinancieros(Periodo)
-  GestorCobros -> RepositorioCobros : obtenerDatosFinancieros(Periodo)
-  RepositorioCobros -> Database : PedirDatosFinanciacion(Periodo)
-  Database --> RepositorioCobros : Map<String, double>
-  RepositorioCobros --> GestorCobros : Map<String, double>
-  GestorCobros --> Dashboard : Map<String, double>
+  Dashboard -> GestorInformes : construirDashboard(Usuario, Periodo)
+  GestorInformes -> RepositorioInformes : obtenerDatosFinancieros(Periodo)
+  RepositorioInformes -> Database : PedirDatosFinanciacion(Periodo)
+  Database --> RepositorioInformes : Map<String, double>
+  RepositorioInformes --> GestorInformes : Map<String, double>
+  GestorInformes --> Dashboard : Map<String, double>
   Dashboard --> Administrador : Visualización actualizada
 end
 
 == FASE 3: Consultar el detalle de una cifra ==
 opt El administrador selecciona una cifra concreta
   Administrador -> Dashboard : seleccionarCifra(cifra)
-  Dashboard -> GestorCobros : obtenerDetalleCifra(cifra, Periodo)
-  GestorCobros -> RepositorioCobros : obtenerDetalleCifra(cifra, Periodo)
-  RepositorioCobros -> Database : PedirDetalleCifra(cifra, Periodo)
-  Database --> RepositorioCobros : List<DetalleCifra>
-  RepositorioCobros --> GestorCobros : List<DetalleCifra>
-  GestorCobros --> Dashboard : List<DetalleCifra>
+  Dashboard -> GestorInformes : obtenerDetalleCifra(cifra, Periodo)
+  GestorInformes -> RepositorioInformes : obtenerDetalleCifra(cifra, Periodo)
+  RepositorioInformes -> Database : PedirDetalleCifra(cifra, Periodo)
+  Database --> RepositorioInformes : List<DetalleCifra>
+  RepositorioInformes --> GestorInformes : List<DetalleCifra>
+  GestorInformes --> Dashboard : List<DetalleCifra>
   Dashboard --> Administrador : Versión detallada de la cifra
 end
 

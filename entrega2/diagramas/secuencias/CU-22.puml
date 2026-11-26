@@ -1,0 +1,126 @@
+@startuml
+title CU-22: Consultar la pantalla de trabajo diario
+
+actor "Usuario\n(Administrador / UsuarioOperativo)" as Usuario
+participant GestorElementosVisuales
+participant "BandejaEntrada\n(BandejaAdmin / BandejaUsuario)" as BandejaEntrada
+participant GestorTrabajo
+participant RepositorioTareas
+participant RepositorioNotificacion
+participant GestorFacturas
+participant RepositorioFacturas
+participant GestorCobros
+participant RepositorioCobros
+participant GestorAprobaciones
+participant GestorSuscripciones
+database Database
+
+== FASE 1: Acceder a la bandeja según el rol ==
+Usuario -> GestorElementosVisuales : construirBandeja(Usuario)
+note right
+Precondición: sesión iniciada correctamente.
+end note
+
+alt El usuario es administrador (AD)
+  GestorElementosVisuales -> BandejaEntrada : crear BandejaAdmin
+  note right
+  Bandeja global: visión global del estado
+  de los clientes a su cargo.
+  end note
+else El usuario es operativo (UO)
+  GestorElementosVisuales -> BandejaEntrada : crear BandejaUsuario
+  note right
+  Bandeja propia: solo lo que al usuario
+  operativo se le permite ver.
+  end note
+end
+
+GestorElementosVisuales -> GestorTrabajo : obtenerPendientes(Usuario)
+note right
+Los filtros de cada grupo se construyen según el rol
+y los clientes a los que el usuario puede acceder.
+end note
+
+== FASE 2: Recopilar los elementos pendientes ==
+group Vencimientos
+  GestorTrabajo -> GestorFacturas : buscar(FiltroFacturas)
+  GestorFacturas -> RepositorioFacturas : buscar(FiltroFacturas)
+  RepositorioFacturas -> Database : Consulta
+  Database --> RepositorioFacturas : List<Factura>
+  RepositorioFacturas --> GestorFacturas : List<Factura>
+  GestorFacturas --> GestorTrabajo : List<Factura>
+end group
+
+group Pagos por conciliar
+  GestorTrabajo -> GestorCobros : listarPagosPorConciliar(Filtro<MovimientoCobro>)
+  GestorCobros -> RepositorioCobros : buscar(Filtro<MovimientoCobro>)
+  RepositorioCobros -> Database : Consulta
+  Database --> RepositorioCobros : List<MovimientoCobro>
+  RepositorioCobros --> GestorCobros : List<MovimientoCobro>
+  GestorCobros --> GestorTrabajo : List<MovimientoCobro>
+end group
+
+group Problemas de entrega (IncidenciaFacturacion)
+  GestorTrabajo -> RepositorioTareas : buscar(FiltroTareas)
+  RepositorioTareas -> Database : Consulta
+  Database --> RepositorioTareas : List<IncidenciaFacturacion>
+  RepositorioTareas --> GestorTrabajo : List<IncidenciaFacturacion>
+end group
+
+group Aprobaciones (SolicitudAprobacion)
+  GestorTrabajo -> GestorAprobaciones : listarPendientes(Usuario)
+  GestorAprobaciones -> RepositorioTareas : buscar(FiltroTareas)
+  RepositorioTareas -> Database : Consulta
+  Database --> RepositorioTareas : List<SolicitudAprobacion>
+  RepositorioTareas --> GestorAprobaciones : List<SolicitudAprobacion>
+  GestorAprobaciones --> GestorTrabajo : List<SolicitudAprobacion>
+end group
+
+group Revisiones anuales (RevisionAnual)
+  GestorTrabajo -> GestorSuscripciones : listarRevisionesPendientes()
+  GestorSuscripciones -> RepositorioTareas : buscar(FiltroTareas)
+  RepositorioTareas -> Database : Consulta
+  Database --> RepositorioTareas : List<RevisionAnual>
+  RepositorioTareas --> GestorSuscripciones : List<RevisionAnual>
+  GestorSuscripciones --> GestorTrabajo : List<RevisionAnual>
+end group
+
+group Tareas
+  GestorTrabajo -> RepositorioTareas : buscar(FiltroTareas)
+  RepositorioTareas -> Database : Consulta
+  Database --> RepositorioTareas : List<Tarea>
+  RepositorioTareas --> GestorTrabajo : List<Tarea>
+end group
+
+group Notificaciones
+  GestorTrabajo -> RepositorioNotificacion : buscar(Filtro<Notificacion>)
+  RepositorioNotificacion -> Database : Consulta
+  Database --> RepositorioNotificacion : List<NotificacionUsuario>
+  RepositorioNotificacion --> GestorTrabajo : List<NotificacionUsuario>
+end group
+
+note over GestorTrabajo
+Los 7 grupos no necesariamente se ejecutarán uno detrás
+de otro: pueden ejecutarse de forma concurrente para agilizar
+la carga de la bandeja, pero se pone así para mayor claridad.
+Si falta algún dato, no se interrumpe el flujo: el elemento
+se muestra sin él y se gestiona en otras partes del sistema.
+end note
+
+GestorTrabajo --> GestorElementosVisuales : ResumenTrabajoDiario
+GestorElementosVisuales --> BandejaEntrada : cargar elementos pendientes
+BandejaEntrada --> Usuario : Lista de elementos pendientes\n(cada uno con acceso directo)
+
+== FASE 3: Acceder directamente a un elemento ==
+opt El usuario selecciona un elemento de la lista
+  Usuario -> BandejaEntrada : seleccionarElemento(ElementoPendiente)
+  BandejaEntrada -> GestorElementosVisuales : construirFicha(entidad)
+  GestorElementosVisuales --> BandejaEntrada : Ficha del elemento
+  BandejaEntrada --> Usuario : Datos del elemento seleccionado
+  note right
+  Se redirige al detalle del elemento
+  (factura, cobro, solicitud, cliente, tarea o notificación).
+  end note
+end
+
+@enduml
