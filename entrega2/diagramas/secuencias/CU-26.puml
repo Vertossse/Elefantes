@@ -1,0 +1,51 @@
+@startuml
+
+header CU-26
+title Flujo Principal 
+
+actor Empleado
+database Database 
+group Buscar por Clientes 
+  loop Tantas busquedas de clientes como el usuario quiera 
+  Empleado -> GestorClientes : BuscarClientes(Filtros) 
+  GestorClientes -> RepositorioCliente : BuscarClientes (Filtros)
+  RepositorioCliente -> Database : Consulta 
+  Database --> RepositorioCliente : List<Cliente>
+  RepositorioCliente --> GestorCliente : List<Cliente> 
+  GestorCliente --> Empleado : List<Cliente>
+  end loop
+end group 
+
+group Buscar por Suscripciones 
+  loop Tantas busquedas como el usuario desee
+  Empleado -> GestorSuscripciones : buscarSuscripciones(Filtros)
+  GestorSuscripciones -> RepositorioSuscripcion : buscarSuscripciones(Filtros)
+  RepositorioSuscripcion -> Database : Consulta 
+  Database --> RepositorioSuscripcion : List<Suscripcion>
+  RepositorioSuscripcion --> GestorSuscripciones : List<Suscripcion>
+  GestorSuscripciones --> Empleado : List<Suscrpcion>
+  end loop
+end group
+
+group Buscar por Facturas 
+  loop Tantas busquedas como el usuario desee
+  Empleado -> GestorFacturas : buscarFacturas(Filtros)
+  GestorFacturas -> RepositorioFacturas : buscarFacturas(Filtros)
+  RepositorioFacturas -> Database : Consulta 
+  Database --> RepositorioFactura : List<Factura>
+  RepositorioFactura --> GestorFacturas : List<Factura>
+  GestorFacturas --> Empleado : List<Factura>
+  end loop
+end group 
+
+group Buscar por Informes 
+  loop Tantas busquedas como el usuario desee
+  Empleado -> GestorInformes : buscarInformes(Filtros)
+  GestorInformes -> RepositorioInformes : buscarInformes(Filtros)
+  RepositorioInformes -> Database : Consulta 
+  Database --> RepositorioInformes : List<Informes>
+  RepositorioInformes --> GestorInformes : List<Informes>
+  GestorInformes --> Empleado : List<Suscrpcion>
+  end loop
+end group 
+@enduml

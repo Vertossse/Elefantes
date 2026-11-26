@@ -1,0 +1,80 @@
+@startuml
+
+header CU-27
+title Flujo Principal 
+actor SuperAdministrador
+database Database
+== FASE 1: Obtener los ajustes del sistema == 
+group Obtener los ajustes del sistema 
+  SuperAdministrador -> GestorSistema : obtenerAjustes()
+  GestorSistema -> RepositorioSistema : obtenerAjustes()
+  RepositorioSistema -> Database : Consulta 
+  Database --> RepositorioSistema : AjustesSistema
+  RepositorioSistema --> GestorSistema : AjustesSistema 
+  GestorSistema --> SuperAdministrador : AjustesSistema
+end group 
+
+note over SuperAdministrador
+  Este es el momento en el que el SuperAdministrador realizará
+  las modificaciones que desee
+end note
+
+== FASE 2: Pedir la aprobacion para los cambios ==
+group Aprobar los cambios y avisar a la empresa 
+  GestorSistema -> GestorAprobaciones
+  GestorAprobaciones -> GestorNotificaciones
+  note right 
+  Este gestor enviará un mensaje a los altos cargos 
+  de la empresa
+  end note 
+  GestorNotificaciones --> GestorAprobaciones
+end group 
+group Guardar la tarea de aprobacion
+  GestorAprobaciones -> GestorTareas : guardarTarea(datos)
+  GestorTareas -> RepositorioTarea : guardarTarea(datos)
+  RepositorioTarea -> Database : guardarTarea(datos)
+  RepositorioTarea --> GestorTareas
+
+  note over GestorNotificaciones
+  Utlizando el CU-31 cuyo diagrama estará más adelante
+  la empresa puede ordenar la aprobacion o negacion de
+  los cambios, eso le llegará al gestor de aprobaciones
+  quien le pedira al de tareas cumplirla o eliminarla
+  end note 
+end group 
+  
+group Pedir la realizacion de los cambios 
+GestorAprobaciones -> GestorTareas : atenderTarea(datos)
+GestorTareas -> RepositorioTarea : obtenerTarea(datos)
+RepositorioTarea -> Database : Consulta
+Database --> RepositorioTarea : Tarea
+RepositorioTarea --> GestorTarea : Tarea
+note right
+  Este paso se realiza en esta parte del diagrama por 
+  el tipo de tarea que estamos resolviendo 
+end note
+GestorTareas -> Tarea : setEstado(APROBADA)
+Tarea -> Tarea : setEstado(APROBADA) 
+GestorTarea -> RepositorioTarea : actualizarTarea(Tarea)
+RepositorioTarea -> Database : actualizarTarea(Tarea)
+end group
+
+== FASE 3: Realizar los cambios == 
+group Atender la Tarea
+Reloj -> GestorTareas : obtenerTarea(datos)
+GestorTareas -> RepositorioTarea : obtenerTarea(datos)
+RepositorioTarea -> Database : Consulta 
+Database --> RepositorioTarea : Tarea
+RepositorioTarea --> GestorTareas : Tarea
+GestorTareas -> GestorTareas : atendertareas(Tarea)
+end group 
+
+group Finalmente se hacen los cambios 
+GestorTareas -> GestorSistema : realizarCambios(String)
+GestorSistema -> AjustesSistema : setCambios(String)
+AjustesSistema -> AjustesSistema : setCambios(String)
+GestorSistema -> RepositorioSistema : guardarCambios(AjustesSistema)
+RepositorioSistema -> Database : Guardar
+RepositorioSistema --> GestorSistema
+end group 
+@enduml

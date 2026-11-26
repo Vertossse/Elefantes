@@ -1,0 +1,77 @@
+@startuml 
+
+header CU-31
+title Flujo Principal 
+actor Empresa
+== Fase 1: La empresa solicita una accion a la plataforma y el gestor de tareas la valida ==
+group Crear y Guardar la Tarea 
+Empresa -> GestorTareas : autenticarTareaAPI(String)
+GestorTareas -> Autenticador : atenderConsultaAPI(String)
+Autenticador --> GestorTareas : int(resultado)
+GestorTareas -> RepositorioTareas : anyadirTarea(Tarea)
+RepositorioTareas -> Database : Consulta
+
+note over RepositorioTareas
+El flujo del guardado de la tarea en la base de datos puede ser concurrente a su realizacion 
+si esta es de realización inmediata, se pone aquí para mejorar la claridad
+end note
+end group 
+
+== Fase 2: Según el tipo de tarea se hara un cambio en un gestor u otro ==
+loop Tantas veces como peticiones haga la empresa 
+alt Si la tarea afecta al gestor de clientes 
+GestorTareas -> GestorClientes : operacion
+GestorClientes -> RepositorioCliente : operacion
+RepositorioCliente -> Database : operacion
+opt Si la operacion requiere obtener los datos de un cliente de la Database 
+Database --> RepositorioCliente : Cliente o List<Cliente>
+RepositorioCliente --> GestorClientes : Cliente o List<Cliente>
+end opt 
+
+else Si afecta al gestor de Facturas
+GestorClientes -> GestorFacturas : operacion
+GestorFacturas -> RepositorioFacturas : operacion 
+RepositorioFacturas -> Database : operacion
+opt Si la operacion requería obtener algún dato de la Database 
+Database --> RepositorioFacturas : Factura o List<Factura>
+RepositorioFacturas --> GestorFactura : Factura o List<Factura>
+opt Si el gestor de clientes o tareas necesita las facturas 
+  GestorFactura --> GestorClientes : Factura o List<Factura>
+  GestorClientes --> GestorTareas : Factura o List<Factura>
+end opt 
+end opt 
+
+else Si afecta al de empleados
+GestorClientes -> GestorEmpleado : operacion
+GestorEmpleado -> RepositorioEmpleado : operacion 
+RepositorioEmpleado -> Database : operacion
+opt Si la operacion requería obtener algún dato de la Database 
+Database --> RepositorioEmpleado : Usuario o List<Usuario>
+RepositorioEmpleado --> GestorEmpleado : Usuario o List<Usuario>
+opt Si el gestor de tareas necesita los datos del empleado 
+  GestorEmpleado --> GestorClientes : Usuario o List<Usuario>
+  GestorClientes --> GestorTareas : Usuario o List<Usuario>
+end opt 
+end opt 
+
+else si afecta al de notificaciones 
+GestorClientes -> GestorNotificaciones : operacion
+GestorNotificaciones -> RepositorioNotificacion : operacion 
+RepositorioNotificacion -> Database : operacion
+opt Si la operacion requería obtener algún dato de la Database 
+Database --> RepositorioNotificacion : Notificacion o List<Notificacion>
+RepositorioNotificacion --> GestorNotificaciones : Notificacion o List<Notificacion>
+opt Si el gestor de tareas necesita las notificaciones
+  GestorNotificaciones --> GestorClientes : Notificacion o List<Notificacion>
+  GestorClientes --> GestorTareas : Notificacion o List<Notificacion>
+end opt 
+end opt 
+end alt
+end loop
+note over Database
+Estas ramas no tienen porque ser excluyentes, según la petición podría realizarse más 
+de una así que en este diagrama solo se mostrará la secuencia estándar de cualquier 
+gestor que pueda verse afectado por cualquier tarea 
+end note 
+database Database 
+@enduml 

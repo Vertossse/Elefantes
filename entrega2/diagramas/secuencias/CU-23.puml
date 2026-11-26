@@ -1,0 +1,36 @@
+@startuml
+autonumber 
+Header CU-23
+title Flujo Principal 
+actor Empleado 
+
+== FASE 1: Generar y guardar la tarea de la incidencia == 
+
+Empleado -> GestorTareas : abrirIncidencia(datos) 
+GestorTareas -> RepositorioTareas : anyadirTarea(Tarea) 
+
+database Database 
+RepositorioTareas -> Database : guardarTarea(Tarea)
+RepositorioTareas --> GestorTareas : resultado(int) 
+
+== FASE 2: Modificar los el estado de una factura si la incidencia lo requiere == 
+opt Guardar Factura 
+GestorTareas -> GestorFactura : pausarNotificaciones(Factura) 
+GestorFactura -> RepositorioFactura : actualizarFactura(Factura, ESTADO)
+RepositorioFactura -> Database : actualizar(Factura)
+RepositorioFactura --> GestorFactura : resultado(int)
+GestorFactura --> GestorTareas : resultado(int)
+end
+
+== FASE 3: Guardar el movimiento de la incidencia == 
+
+GestorTareas -> GestorMovimientos : registrarMovimiento(REGISTROTAREA)
+GestorMovimientos -> RepositorioMovimientos : guardarMovimiento(Movimiento)
+RepositorioMovimientos --> GestorMovimientos : resultado(int) 
+GestorMovimientos --> GestorTareas 
+
+== Finalizacion del flujo ==
+
+GestorTareas --> Empleado
+
+@enduml

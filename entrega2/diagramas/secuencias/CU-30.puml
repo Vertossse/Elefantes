@@ -1,0 +1,40 @@
+@startuml 
+
+header CU-30
+title Flujo Principal 
+actor Administrador 
+== Fase 1: Pedir los clientes para obtener los contactos == 
+group Pedir los clientes 
+Administrador -> GestorClientes : obtenerClientes(List<Filtro>)
+GestorClientes -> RepositorioCliente : obtenerClientes(List<Filtro>)
+RepositorioCliente -> Database : Consulta 
+Database --> RepositorioCliente : List<Cliente>
+RepositorioCliente --> GestorClientes : List<Cliente>
+GestorClientes --> Administrador : List<Cliente>
+end group 
+note over Administrador
+A continuacion el Administrador seleccionara un cliente y 
+la opción de editar los datos personales de un contacto 
+end note 
+
+== Fase 2: Anonimizar los datos para el responsable asignado == 
+group Anonimizar los datos del cliente 
+Administrador -> GestorClientes : anonimizarContacto() 
+GestorClientes -> RepositorioCliente : actualizarCliente(List<Filtro>)
+RepositorioCliente -> Database : Consulta 
+end group 
+
+group Guardar Tarea de la eliminacion futura 
+GestorClientes -> GestorTareas : anyadirTarea(Tipo_Tarea)
+GestorTareas -> RepositorioTareas : anyadirTarea(Tarea)
+RepositorioTareas -> Database : Consulta
+end group 
+
+== Fase 3: Guardar el Movimiento == 
+group Guardar el movimiento 
+GestorClientes -> GestorMovimientos : guardarMovimiento(Tipo_Movimiento)
+GestorMovimientos -> RepositorioMovimiento : guardarMovimiento(Movimiento)
+RepositorioMovimiento -> Database : Consulta 
+end group 
+database Database 
+@enduml 
