@@ -7,7 +7,7 @@ title SEC-20 - Conciliación automática de cobros
 participant "Reloj"                     as Reloj <<singleton>>
 control "GestorCobros"                  as GC
 control "GestorSistema"                 as GSistema
-control "GestorTrabajo"                 as GT
+control "GestorNotificaciones"            as GN
 control "GestorMovimientos"             as GM
 entity "Conciliacion"                   as Conciliacion
 entity "Factura"                        as Factura
@@ -32,13 +32,13 @@ else Aviso nuevo
   RF --> GC : facturas
   GC -> GC : buscarFacturaCoincidente(movimientoCobro)
   alt Sin coincidencia clara
-    GC -> GT : enviarNotificacion(notificacion, responsable)
+    GC -> GN : enviarNotificacion(notificacion, responsable)
     GC -> GM : registrarAuditoria("MovimientoCobro", idMovimiento, Alta, sistema, null, datos)
     note over GC : Caso dudoso: no se marca como pagada; se delega en CU-21.
   else Coincidencia clara
     GC -> GC : calcularDiferencia(movimientoCobro, factura)
     alt Importe no coincidente
-      GC -> GT : enviarNotificacion(notificacion, responsable)
+      GC -> GN : enviarNotificacion(notificacion, responsable)
       GC -> GM : registrarAuditoria("Conciliacion", idConciliacion, Conciliacion, sistema, null, diferencia)
       note over GC : La factura sigue pendiente y se señala la diferencia.
     else Importe coincidente
@@ -46,7 +46,7 @@ else Aviso nuevo
       GC -> RCon : guardar(conciliacion)
       GC -> Factura : marcarPagada()
       GC -> RF : guardar(factura)
-      GC -> GT : enviarNotificacion(notificacion, responsable)
+      GC -> GN : enviarNotificacion(notificacion, responsable)
       GC -> GM : registrarAuditoria("Conciliacion", idConciliacion, Conciliacion, sistema, null, datos)
       GC --> Reloj : conciliación completada
     end

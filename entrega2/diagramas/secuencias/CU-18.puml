@@ -7,7 +7,7 @@ title SEC-18 - Recordatorios y avisos de impago automáticos
 participant "Reloj"                       as Reloj <<singleton>>
 control "GestorCobros"                    as GC
 control "GestorSistema"                   as GSistema
-control "GestorTrabajo"                   as GT
+control "GestorNotificaciones"            as GN
 entity "Cliente"                          as Cliente
 entity "Contacto"                         as Contacto
 entity "Notificacion"                     as Notificacion
@@ -52,16 +52,16 @@ loop Por cada factura pendiente
       alt Canal no admitido
         note over GC : Se usa el canal disponible o la bandeja interna.
       else Canal admitido
-        GC -> GT : enviarNotificacion(notificacion, factura, contacto, tipo)
-        GT -> REC : buscarUltimoPorFactura(factura)
-        REC --> GT : ultimoEnvio
+        GC -> GN : enviarNotificacion(notificacion, factura, contacto, tipo)
+        GN -> REC : buscarUltimoPorFactura(factura)
+        REC --> GN : ultimoEnvio
         alt Envío ya realizado en la misma fecha
-          GT -> GT : descartar()
+          GN -> GN : descartar()
         else Envío nuevo
-          GT -> Notificacion : crear(asunto, texto, fecha, usuarioDestinatario)
-          GT -> Envio : crear(tipoMensaje, notificacion, factura, contacto)
-          GT -> REC : guardar(envio)
-          GT --> GC : envio
+          GN -> Notificacion : crear(asunto, texto, fecha, usuarioDestinatario)
+          GN -> Envio : crear(tipoMensaje, notificacion, factura, contacto)
+          GN -> REC : guardar(envio)
+          GN --> GC : envio
         end
       end
     end

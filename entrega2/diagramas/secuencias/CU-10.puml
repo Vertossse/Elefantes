@@ -47,9 +47,7 @@ else Permiso concedido
     Ventana --> Usuario : mostrarErrorValidacion(mensaje)
   else Datos válidos
     GS -> Excepcion : crear(tipo, valor, desde, hasta)
-    GS -> Excepcion : solicitarAprobacion(cliente)
-    Excepcion --> GS : solicitud
-    GS -> GA : registrarSolicitud(solicitud)
+    GS -> GA : solicitar(TipoOperacionAprobacion.ExcepcionComercial, cliente, valor, motivo)
     GA -> GA : determinarAprobador(solicitud)
     GA -> RU : buscarAdministradores()
     RU --> GA : administradores
