@@ -1,6 +1,6 @@
 @startuml ER Turbine
 ' ER fisico de Turbine. Motor: PostgreSQL.
-' Base: guia de clases y ER (version tras los cambios). Detalle en er-diccionario.md.
+' Base: guia de clases y ER (version tras los cambios). Detalle en "Diccionario de datos ER.md".
 
 title ER fisico de Turbine
 
@@ -29,6 +29,7 @@ package "Usuarios y clientes" #EAF1FB {
     password_hash : VARCHAR(255)
     * rol : VARCHAR(3)
     * estado_cuenta : VARCHAR(11)
+    * tiene_restricciones_clientes : BOOLEAN
     umbral_aprobacion : NUMERIC(12,2)
     puede_dar_alta_clientes : BOOLEAN
     * intentos_fallidos : SMALLINT
@@ -51,10 +52,7 @@ package "Usuarios y clientes" #EAF1FB {
     * nif_cif : VARCHAR(40) <<UK>>
     * nombre_comercial : VARCHAR(150)
     razon_social : VARCHAR(200)
-    domicilio_calle : VARCHAR(150)
-    domicilio_numero : VARCHAR(20)
-    domicilio_cp : VARCHAR(12)
-    domicilio_ciudad : VARCHAR(80)
+    domicilio_fiscal : TEXT
     pais : CHAR(2)
     * moneda : CHAR(3)
     * estado : VARCHAR(20)
@@ -62,6 +60,7 @@ package "Usuarios y clientes" #EAF1FB {
     fecha_baja_efectiva : DATE
     motivo_baja : TEXT
     usuario_responsable_id : BIGINT <<FK>>
+    tarea_eliminar_id : BIGINT <<FK>>
   }
   entity contacto {
     * id : BIGINT <<PK>>
@@ -70,10 +69,14 @@ package "Usuarios y clientes" #EAF1FB {
     email : VARCHAR(254)
     telefono : VARCHAR(30)
     * rol_contacto : VARCHAR(14)
-    * consentimiento_email : BOOLEAN
-    * consentimiento_whatsapp : BOOLEAN
     * idioma : CHAR(2)
     * estado : VARCHAR(16)
+  }
+  entity contacto_canal {
+    * contacto_id : BIGINT <<PK,FK>>
+    * canal : VARCHAR(8) <<PK>>
+    --
+    valor : VARCHAR(200)
   }
   entity cliente_contacto {
     * cliente_id : BIGINT <<PK,FK>>
@@ -109,6 +112,7 @@ package "Suscripcion y tarifas" #FFF6E5 {
     * cliente_id : BIGINT <<FK,UK>>
     * tarifa_rango_id : BIGINT <<FK>>
     usuario_comercial_id : BIGINT <<FK>>
+    excepcion_comercial_id : BIGINT <<FK>>
     * fecha_inicio : DATE
     * plan_contratado : VARCHAR(80)
     * tarifa_acordada : NUMERIC(12,2)
@@ -123,9 +127,8 @@ package "Suscripcion y tarifas" #FFF6E5 {
   entity excepcion_comercial {
     * id : BIGINT <<PK>>
     --
-    * suscripcion_id : BIGINT <<FK>>
     * tipo : VARCHAR(20)
-    valor : NUMERIC(12,2)
+    descuento : NUMERIC(12,2)
     * vigente_desde : DATE
     vigente_hasta : DATE
   }
@@ -148,18 +151,11 @@ package "Facturacion" #FDECEC {
     * cliente_id : BIGINT <<FK>>
     suscripcion_id : BIGINT <<FK>>
     * usuario_creador_id : BIGINT <<FK>>
-    * concepto_id : BIGINT <<FK>>
-    * descripcion : VARCHAR(200)
-    * cantidad : NUMERIC(10,3)
-    * precio_unitario : NUMERIC(12,2)
-    * porcentaje_descuento : NUMERIC(5,2)
-    * porcentaje_impuesto : NUMERIC(5,2)
-    * importe_total_linea : NUMERIC(12,2)
+    periodo_id : BIGINT <<FK>>
     numero_serie_completo : VARCHAR(30) <<UK>>
     serie : VARCHAR(10)
     numero_secuencial : INTEGER
-    * estado_documento : VARCHAR(12)
-    estado_cobro : VARCHAR(10)
+    * estado : VARCHAR(11)
     fecha_emision : DATE
     fecha_vencimiento : DATE
     * moneda : CHAR(3)
@@ -178,11 +174,22 @@ package "Facturacion" #FDECEC {
     * version : INTEGER
     * creado_en : TIMESTAMPTZ
   }
+  entity factura_concepto {
+    * id : BIGINT <<PK>>
+    --
+    * factura_id : BIGINT <<FK>>
+    * concepto_id : BIGINT <<FK>>
+    * descripcion : VARCHAR(200)
+    * cantidad : NUMERIC(10,3)
+    * precio_unitario : NUMERIC(12,2)
+    * porcentaje_descuento : NUMERIC(5,2)
+    * porcentaje_impuesto : NUMERIC(5,2)
+    * importe_total_linea : NUMERIC(12,2)
+  }
   entity factura_rectificativa {
     * factura_id : BIGINT <<PK,FK>>
     --
     * factura_original_id : BIGINT <<FK>>
-    * aprobado_por_id : BIGINT <<FK>>
     * motivo_rectificacion : TEXT
     * importe_ajustado : NUMERIC(12,2)
   }
@@ -216,6 +223,7 @@ package "Cobros" #F3ECFA {
     * tipo : VARCHAR(10)
     * discrepancia_importe : NUMERIC(12,2)
     * fecha : TIMESTAMPTZ
+    motivo_revertido : TEXT
     * estado : VARCHAR(10)
   }
 }
@@ -227,7 +235,8 @@ package "Tareas" #EEF7EE {
     * ejecutor : VARCHAR(7)
     * estado : VARCHAR(10)
     * fecha_creacion : TIMESTAMPTZ
-    fecha_aplazada_fin : DATE
+    fecha_aplazada : DATE
+    fecha_fin : DATE
   }
   entity delegacion_temporal {
     * tarea_id : BIGINT <<PK,FK>>
@@ -242,8 +251,7 @@ package "Tareas" #EEF7EE {
     * tarea_id : BIGINT <<PK,FK>>
     --
     * cliente_id : BIGINT <<FK>>
-    * tarifa_calculada_id : BIGINT <<FK>>
-    tarifa_aprobada_id : BIGINT <<FK>>
+    * tarifa_rango_id : BIGINT <<FK>>
     aprobado_por_id : BIGINT <<FK>>
     facturacion_verificada : NUMERIC(14,2)
     * estado : VARCHAR(10)
@@ -280,6 +288,7 @@ package "Tareas" #EEF7EE {
     * usuario_id : BIGINT <<FK>>
     * tipo : VARCHAR(18)
     * prioridad : VARCHAR(5)
+    * estado : VARCHAR(9)
     * pausar_recordatorios : BOOLEAN
   }
   entity comentario_incidencia {
@@ -299,8 +308,14 @@ package "Movimientos y notificaciones" #EFEFEF {
     * tipo : VARCHAR(8)
     * asunto : VARCHAR(200)
     * texto : TEXT
+    detalle : TEXT
     * fecha : TIMESTAMPTZ
-    usuario_destinatario_id : BIGINT <<FK>>
+    * usuario_responsable_id : BIGINT <<FK>>
+    correo_origen : VARCHAR(254)
+    correo_destino : VARCHAR(254)
+    telefono_origen : VARCHAR(30)
+    telefono_destino : VARCHAR(30)
+    usuario_receptor_id : BIGINT <<FK>>
     leida : BOOLEAN
   }
   entity movimiento {
@@ -309,8 +324,6 @@ package "Movimientos y notificaciones" #EFEFEF {
     * tipo : VARCHAR(34)
     * fecha_hora : TIMESTAMPTZ
     usuario_id : BIGINT <<FK>>
-    entidad_afectada : VARCHAR(40)
-    id_entidad_afectada : BIGINT
     detalle : TEXT
   }
   entity envio_comunicacion {
@@ -339,8 +352,65 @@ package "Movimientos y notificaciones" #EFEFEF {
     * nombre_archivo : VARCHAR(255)
     * filas_totales : INTEGER
     * filas_correctas : INTEGER
-    * filas_con_error : INTEGER
-    * estado : VARCHAR(10)
+    * estado : VARCHAR(8)
+  }
+  entity alta_baja_cliente {
+    * movimiento_id : BIGINT <<PK,FK>>
+    --
+    * cliente_id : BIGINT <<FK>>
+    * es_baja : BOOLEAN
+  }
+  entity alta_baja_usuario {
+    * movimiento_id : BIGINT <<PK,FK>>
+    --
+    * empleado_afectado_id : BIGINT <<FK>>
+    * es_baja : BOOLEAN
+  }
+  entity asignacion_desasignacion_cliente {
+    * movimiento_id : BIGINT <<PK,FK>>
+    --
+    * cliente_id : BIGINT <<FK>>
+    responsable_original_id : BIGINT <<FK>>
+    responsable_nuevo_id : BIGINT <<FK>>
+    * es_asignacion : BOOLEAN
+  }
+  entity generacion_factura {
+    * movimiento_id : BIGINT <<PK,FK>>
+    --
+    * factura_id : BIGINT <<FK>>
+  }
+  entity rectificacion_factura {
+    * movimiento_id : BIGINT <<PK,FK>>
+    --
+    * factura_id : BIGINT <<FK>>
+    * fecha_rectificacion : DATE
+  }
+  entity generacion_informe {
+    * movimiento_id : BIGINT <<PK,FK>>
+    --
+    * informe_id : BIGINT <<FK>>
+  }
+  entity aplicacion_excepcion {
+    * movimiento_id : BIGINT <<PK,FK>>
+    --
+    * factura_id : BIGINT <<FK>>
+    * cliente_id : BIGINT <<FK>>
+    * excepcion_comercial_id : BIGINT <<FK>>
+  }
+  entity registro_cobro {
+    * movimiento_id : BIGINT <<PK,FK>>
+    --
+    * conciliacion_id : BIGINT <<FK>>
+  }
+  entity registro_tarea {
+    * movimiento_id : BIGINT <<PK,FK>>
+    --
+    * tarea_id : BIGINT <<FK>>
+  }
+  entity cierre_periodo {
+    * movimiento_id : BIGINT <<PK,FK>>
+    --
+    * periodo_id : BIGINT <<FK>>
   }
 }
 
@@ -350,6 +420,8 @@ package "Sistema" #FFFBE0 {
     --
     * usuario_id : BIGINT <<FK>>
     cliente_id : BIGINT <<FK>>
+    factura_id : BIGINT <<FK>>
+    periodo_id : BIGINT <<FK>>
     * tipo : VARCHAR(40)
     parametros : JSONB
     * fecha_generacion : TIMESTAMPTZ
@@ -370,16 +442,20 @@ package "Sistema" #FFFBE0 {
 cliente ||--o{ asignacion_cliente : cliente
 usuario ||--o{ asignacion_cliente : usuario
 usuario |o--o{ cliente : usuario_responsable
+tarea |o--o{ cliente : tarea_eliminar
+contacto ||--o{ contacto_canal : contacto
 cliente ||--o{ cliente_contacto : cliente
 contacto ||--o{ cliente_contacto : contacto
 cliente ||--o{ cliente_etiqueta : cliente
 etiqueta ||--o{ cliente_etiqueta : etiqueta
 cliente ||--o| suscripcion : cliente
 tarifa_rango ||--o{ suscripcion : tarifa_rango
-suscripcion ||--o{ excepcion_comercial : suscripcion
+excepcion_comercial |o--o{ suscripcion : excepcion_comercial
 cliente ||--o{ factura : cliente
 suscripcion |o--o{ factura : suscripcion
-concepto ||--o{ factura : concepto
+periodo_administrativo |o--o{ factura : periodo
+factura ||--o{ factura_concepto : factura
+concepto ||--o{ factura_concepto : concepto
 factura ||--o| factura_rectificativa : factura
 factura ||--o{ factura_rectificativa : factura_original
 movimiento_cobro ||--o| conciliacion_cobro : movimiento_cobro
@@ -388,8 +464,7 @@ tarea ||--o| delegacion_temporal : tarea
 cliente ||--o{ delegacion_temporal : cliente
 tarea ||--o| revision_anual_tarifa : tarea
 cliente ||--o{ revision_anual_tarifa : cliente
-tarifa_rango ||--o{ revision_anual_tarifa : tarifa_calculada
-tarifa_rango |o--o{ revision_anual_tarifa : tarifa_aprobada
+tarifa_rango ||--o{ revision_anual_tarifa : tarifa_rango
 tarea ||--o| solicitud_aprobacion : tarea
 cliente ||--o{ solicitud_aprobacion : cliente
 factura |o--o{ solicitud_aprobacion : factura
@@ -402,7 +477,7 @@ tarea ||--o| incidencia_facturacion : tarea
 cliente ||--o{ incidencia_facturacion : cliente
 factura |o--o{ incidencia_facturacion : factura
 incidencia_facturacion ||--o{ comentario_incidencia : incidencia
-usuario |o--o{ notificacion : usuario_destinatario
+usuario ||--o{ notificacion : usuario_responsable
 usuario |o--o{ movimiento : usuario
 movimiento ||--o| envio_comunicacion : movimiento
 notificacion ||--o{ envio_comunicacion : notificacion
@@ -410,18 +485,40 @@ factura |o--o{ envio_comunicacion : factura
 contacto ||--o{ envio_comunicacion : contacto
 movimiento ||--o| registro_auditoria : movimiento
 movimiento ||--o| importacion_csv : movimiento
+movimiento ||--o| alta_baja_cliente : movimiento
+cliente ||--o{ alta_baja_cliente : cliente
+movimiento ||--o| alta_baja_usuario : movimiento
+movimiento ||--o| asignacion_desasignacion_cliente : movimiento
+cliente ||--o{ asignacion_desasignacion_cliente : cliente
+movimiento ||--o| generacion_factura : movimiento
+factura ||--o{ generacion_factura : factura
+movimiento ||--o| rectificacion_factura : movimiento
+factura ||--o{ rectificacion_factura : factura
+movimiento ||--o| generacion_informe : movimiento
+informe ||--o{ generacion_informe : informe
+movimiento ||--o| aplicacion_excepcion : movimiento
+factura ||--o{ aplicacion_excepcion : factura
+cliente ||--o{ aplicacion_excepcion : cliente
+excepcion_comercial ||--o{ aplicacion_excepcion : excepcion_comercial
+movimiento ||--o| registro_cobro : movimiento
+conciliacion_cobro ||--o{ registro_cobro : conciliacion
+movimiento ||--o| registro_tarea : movimiento
+tarea ||--o{ registro_tarea : tarea
+movimiento ||--o| cierre_periodo : movimiento
+periodo_administrativo ||--o{ cierre_periodo : periodo
 cliente |o--o{ informe : cliente
+factura |o--o{ informe : factura
+periodo_administrativo |o--o{ informe : periodo
 
 note bottom of factura
   UNIQUE (serie, numero_secuencial)
   UNIQUE (suscripcion_id, mes_facturado) si tipo = RECURRENTE
-  estado_documento: BORRADOR, EMITIDA, RECTIFICADA, ANULADA
-  estado_cobro: PENDIENTE, PAGADA, INCOBRABLE
-  En borrador: numero_serie_completo y estado_cobro nulos
+  estado: BORRADOR, EMITIDA, PAGADA, ANULADA, RECTIFICADA, INCOBRABLE
+  En borrador: numero_serie_completo nulo
 end note
 
 note bottom of movimiento
-  13 tipos (uno por subclase)
+  13 tipos, cada uno con su tabla
   Solo INSERT y SELECT para la aplicacion
 end note
 
