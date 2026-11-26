@@ -1,0 +1,183 @@
+@startuml Artefactos-UNIFICADO
+' ============================================================================
+' Turbine - Arquitectura UNIFICADA de artefactos (bloques 1 a 4)
+'
+' Fusiona, sin duplicar nodos ni conexiones:
+'   Despliegue_v1.puml           (Bloque 1: acceso y clientes)
+'   Artefactos_Bloque2.puml      (Bloque 2: contratos y cobros)
+'   Artefactos - Bloque_3.puml   (Bloque 3: facturacion y aprobaciones)
+'   Artefactos_Bloque4.puml      (Bloque 4: seguimiento y sistema)
+'
+' Criterio de union:
+'   - Los cuatro diagramas comparten los mismos nodos fisicos (PC, servidor
+'     de aplicacion, servidor de BD y servidor de respaldo) y los mismos
+'     servicios externos (correo y WhatsApp). Se declaran UNA sola vez.
+'   - La vista de componentes del bloque 3 se integra dentro del artefacto
+'     turbine-app: los gestores de los cuatro bloques conviven en la misma
+'     capa de control, con sus repositorios, filtros y servicios de soporte.
+'   - El esquema de datos se unifica en una sola base PostgreSQL de 30
+'     tablas: la del bloque 2 (12), la del bloque 4 (30) y las compartidas.
+'   - El "Reloj del sistema" (actor del bloque 3) y el Reloj desplegado en
+'     el servidor de aplicacion (bloques 2 y 4) son la misma instancia.
+'
+' Convenciones: visibilidad -, #, + en clases; trazabilidad en notas y
+' leyenda; sin ON DELETE CASCADE hacia factura, conciliacion ni auditoria
+' (RB-03, RB-18) porque la traza es append-only (AUD-01).
+' ============================================================================
+!pragma layout smetana
+skinparam style strictuml
+skinparam nodeStyle rectangle
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontSize 11
+skinparam nodesep 15
+skinparam ranksep 35
+
+title Turbine - Arquitectura unificada (bloques 1-4)\n(vista de despliegue + componentes)
+
+actor "Empleado de Turbine" as EMP
+
+node "PC del usuario" <<dispositivo>> as PC {
+  node "Navegador web\n(Chrome, Firefox, Safari)" <<entorno de ejecucion>> as NAV {
+    artifact "Interfaz web\n(acceso, empleados, clientes, asignaciones,\nbandejas, ventanas, fichas, historiales y CSV)" as UI
+  }
+}
+
+node "Servidor de aplicacion" <<servidor>> as APP {
+  node "Entorno de ejecucion" <<entorno de ejecucion>> as RUN {
+    artifact "turbine-app" as TAPP {
+      package "Frontera / construccion de vistas" as FRON {
+        component "FabricaInterfaces <<Factory>>" as FI
+        component "GestorElementosVisuales" as GEV
+      }
+
+      package "Control - gestores por caso de uso" as CTRL {
+        component "GestorAcceso" as GA
+        component "GestorClientes" as GC
+        component "GestorEmpleados" as GEM
+        component "GestorSuscripciones" as GS
+        component "GestorFacturas" as GF
+        component "GestorAprobaciones" as GAP
+        component "GestorExcepciones" as GEX
+        component "GestorCobros" as GCO
+        component "GestorMovimientos" as GM
+        component "GestorTrabajo / GestorTareas" as GT
+        component "GestorNotificaciones" as GN
+        component "GestorInformes" as GI
+        component "GestorSistema / GestorPeriodos" as GSI
+      }
+
+      package "Persistencia y soporte" as INFRA {
+        component "Repositorio<T> <<interface>>" as REPO
+        component "Filtro<T> <<interface>>" as FILTRO
+        component "Reloj <<singleton>>" as RELOJ
+        component "AjustesSistema <<singleton>>" as AJUSTES
+        component "AutenticadorValidador <<static>>" as AUTH
+      }
+    }
+
+    artifact "configuracion y secretos" as CFG
+  }
+}
+
+node "Servidor de base de datos" <<servidor>> as DB {
+  node "PostgreSQL" <<entorno de ejecucion>> as PG {
+    artifact "esquema turbine\n(30 tablas: clientes, facturacion,\ncontratos, cobros, seguimiento,\nnotificaciones y sistema)" as ESQ
+  }
+}
+
+node "Servidor de respaldo" <<servidor>> as BK {
+  node "PostgreSQL" <<entorno de ejecucion>> as PG2 {
+    artifact "copia de seguridad" as COPIA
+  }
+}
+
+node "Servicio de correo" <<externo>> as MAIL
+node "Servicio de WhatsApp" <<externo>> as WA
+
+' --- Conexiones entre nodos (comunes a los cuatro diagramas) ---------------
+EMP --> UI : utiliza
+PC -- APP : HTTPS
+APP -- DB : SQL (TCP)
+DB -- BK : replicacion / backup
+APP -- MAIL : SMTP
+APP -- WA : HTTPS (API)
+
+' --- Conexiones internas de la vista de componentes ------------------------
+UI --> FI : crea interfaz por rol
+FI --> GEV : delega
+GEV --> CTRL : solicita operaciones
+CTRL --> REPO : persiste por agregado
+CTRL ..> FILTRO : crea criterio
+REPO --> ESQ : SELECT / INSERT
+CFG ..> TAPP : parametros y secretos
+
+RELOJ ..> GF : generarRecurrentes(fecha) [CU-14]
+RELOJ ..> GCO : recordatorios y conciliacion [CU-18, CU-20]
+RELOJ ..> GT : revisiones y caducidades [CU-09, CU-03]
+GCO ..> MAIL : avisos de impago [REC-01]
+GCO ..> WA : avisos de impago [REC-01]
+GN ..> MAIL : notificaciones Correo [NOT-01, ENV-01]
+GN ..> WA : notificaciones WhatsApp [ENV-02]
+GAP ..> AUTH : separacion de funciones [APR-02]
+CTRL ..> AJUSTES : umbrales, plazos y festivos [CFG-01]
+
+note right of UI
+  **Frontera (bloques 1-4)**
+  InterfazUsuario / InterfazAdmin / InterfazSuperadmin
+  BandejaEntrada, Ventana*, Ficha*, Historial*
+  El PC solo tiene navegador: la frontera de
+  seguridad esta en el servidor (SEG-02).
+end note
+
+note right of TAPP
+  **Control (BCE) - todos los bloques**
+  GestorAcceso, GestorClientes, GestorEmpleados (B1)
+  GestorSuscripciones, GestorAprobaciones, GestorCobros,
+  GestorTrabajo, GestorMovimientos (B2)
+  GestorFacturas, GestorExcepciones (B3)
+  GestorTareas, GestorNotificaciones, GestorInformes,
+  GestorSistema / GestorPeriodos (B4)
+  **Dominio (entidades)**
+  Cliente, Usuario, Suscripcion, TarifaRango,
+  ExcepcionComercial, Factura, Conciliacion, Tarea,
+  Movimiento, Notificacion, Incidencia, Informe
+  FabricaInterfaces es la unica que conoce las
+  tres vistas concretas por rol (USU-02).
+end note
+
+note bottom of RELOJ
+  Singleton en el servidor de aplicacion: dispara
+  la facturacion del dia 1, los recordatorios y la
+  conciliacion aunque nadie abra el navegador.
+  Un solo planificador: sin Reloj por gestor.
+end note
+
+note bottom of INFRA
+  Repositorio<T> por agregado, no por tabla.
+  Filtro<T> evita cargar tablas completas.
+  Preconfiguraciones (B3) = AjustesSistema.
+end note
+
+note bottom of ESQ
+  **Esquema turbine (30 tablas)**
+  B1: usuario, cliente, contacto, asignacion, etiqueta, importacion.
+  B2: suscripcion, tarifa_rango, excepcion_comercial,
+  movimiento_cobro, conciliacion_cobro, tarea,
+  revision_anual_tarifa, solicitud_aprobacion, disputa_deuda,
+  movimiento, registro_auditoria, ajustes_sistema.
+  B3/B4: factura, incidencia, notificacion, periodo e informe.
+  Sin borrado en cascada hacia factura, conciliacion ni auditoria
+  (RB-03, RB-18); movimientos y auditoria son append-only (AUD-01).
+end note
+
+legend bottom
+  <b>Trazabilidad por bloque</b>
+  Bloque 1 - acceso y clientes: CU-01 a CU-07, USU-01, CLI-01
+  Bloque 2 - contratos y cobros: CU-08 a CU-11, CU-18 a CU-22, SUB-01, PAG-01, REC-01
+  Bloque 3 - facturacion y aprobaciones: CU-12 a CU-16, FAC-01, APR-01
+  Bloque 4 - seguimiento y sistema: CU-17, CU-23 a CU-31, NOT-01, ENV-01, AUD-01, CFG-01
+  Nodos y servicios externos: PE-05, SEG-02, RB-03, RB-18
+endlegend
+
+@enduml
