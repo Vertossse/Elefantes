@@ -1,0 +1,34 @@
+@startuml 05-generacion-y-exportacion-de-informes
+title TurbineH · CU-25 · Generar y exportar un informe
+skinparam shadowing false
+hide footbox
+autonumber
+
+actor "Usuario autorizado" as U
+control GestorInformes as G
+participant AutenticadorValidador as A
+database RepositorioInformes as R
+control GestorMovimientos as M
+
+U -> G : generarInforme(tipo, filtro)
+G -> A : comprobarPermiso(usuario, operación, cliente)
+alt Consulta autorizada y datos suficientes
+  G -> G : aplicar filtros y preparar los datos del informe
+  G -> R : guardar(informe)
+  G -> M : registrarMovimiento(GeneracionInforme, usuario, detalle)
+  G --> U : informe con parámetros y fecha de generación
+  opt El usuario selecciona PDF o CSV
+    U -> G : exportar(informe, formato)
+    G -> A : comprobarPermiso(usuario, operación, cliente)
+    alt Exportación autorizada
+      G -> G : generar el archivo al vuelo\ny solicitar su descarga
+      G -> M : registrarAuditoria(tabla, id, accion, usuario, antes, despues)
+      G --> U : descarga solicitada
+    else Permiso denegado
+      G --> U : exportación bloqueada
+    end
+  end
+else Faltan datos o el acceso no está autorizado
+  G --> U : indicar el motivo del rechazo
+end
+@enduml

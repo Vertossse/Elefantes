@@ -1,0 +1,42 @@
+@startuml 03-consulta-y-rectificacion
+title TurbineH · CU-15 y CU-16 · Consultar, descargar y rectificar una factura
+skinparam shadowing false
+hide footbox
+autonumber
+
+actor Usuario as U
+control GestorFacturas as G
+database RepositorioFacturas as R
+entity FacturaRectificativa as FR
+entity Factura as F
+control GestorMovimientos as M
+
+U -> G : buscar(filtro)
+G -> R : buscar(filtro con ámbito autorizado)
+R --> G : facturas visibles
+G --> U : listado de facturas
+alt El usuario pide descargar el PDF
+  U -> G : descargarPDF(factura)
+  G -> R : buscarPorId(id)
+  R --> G : datos registrados de la factura
+  G -> G : comprobar permiso sobre la factura\ny generar el PDF al vuelo si procede
+  G --> U : descarga solicitada al sistema operativo\no aviso de acceso denegado
+else Un administrador confirma una rectificación
+  U -> G : rectificar(factura, conceptos, motivo)
+  G -> G : comprobar rol, factura original emitida y motivo
+  alt Corrección válida y aprobada cuando corresponde
+    G -> FR : recalcularTotales()
+    G -> R : guardar(rectificativa vinculada a la original)
+    ref over G, FR : CU-13 · Emitir la rectificativa en la serie correspondiente
+    opt La rectificativa queda emitida
+      G -> F : marcarRectificada()
+      G -> R : guardar(estado de la original)
+      G -> M : registrarMovimiento(RectificacionFactura, usuario, detalle)
+      note over F : Se conservan los importes y datos de la factura original.
+    end
+    G --> U : estado de la rectificativa
+  else Falta aprobación, permiso o datos
+    G --> U : indicar el paso pendiente o el motivo del rechazo
+  end
+end
+@enduml

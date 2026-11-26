@@ -1,0 +1,36 @@
+@startuml 04-entrega-y-reintento
+title TurbineH · CU-17 · Resolver un envío fallido
+skinparam shadowing false
+hide footbox
+autonumber
+
+actor Usuario as U
+entity EnvioComunicacion as E
+entity IncidenciaFacturacion as I
+control GestorMovimientos as M
+
+note over E, I
+  La factura ya está emitida. Si falla la entrega,
+  se registra el intento y se abre una incidencia.
+end note
+ref over E, I : Gestionar el rebote según CU-17
+E -> E : marcarRebotado()
+opt El usuario autorizado solicita reenvío
+  ref over U, E, I : Confirmar o corregir el contacto y solicitar el reintento
+  E -> E : reintentar()
+  note over E : El PDF se regenera con los datos y el número de la misma factura.
+  alt Entrega confirmada
+    E -> E : marcarEnviado()
+    I -> I : resolver(usuario)
+    ref over U, I : Comunicar que la incidencia se ha resuelto
+  else Nuevo fallo de entrega
+    E -> E : marcarRebotado()
+    ref over U, I : Comunicar que la incidencia sigue pendiente
+  end
+  ref over I, M : Registrar auditoría del resultado del reintento
+end
+note over E, M
+  El MD asigna la orquestación a GestorTrabajo.
+  Sus llamadas se agrupan en ref porque pertenece a otro bloque.
+end note
+@enduml
