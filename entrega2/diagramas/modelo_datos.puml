@@ -60,7 +60,6 @@ package "Usuarios y clientes" #EAF1FB {
     fecha_baja_efectiva : DATE
     motivo_baja : TEXT
     usuario_responsable_id : BIGINT <<FK>>
-    tarea_eliminar_id : BIGINT <<FK>>
   }
   entity contacto {
     * id : BIGINT <<PK>>
@@ -76,7 +75,7 @@ package "Usuarios y clientes" #EAF1FB {
     * contacto_id : BIGINT <<PK,FK>>
     * canal : VARCHAR(8) <<PK>>
     --
-    valor : VARCHAR(200)
+    * valor : VARCHAR(254)
   }
   entity cliente_contacto {
     * cliente_id : BIGINT <<PK,FK>>
@@ -110,8 +109,6 @@ package "Suscripcion y tarifas" #FFF6E5 {
     * id : BIGINT <<PK>>
     --
     * cliente_id : BIGINT <<FK,UK>>
-    * tarifa_rango_id : BIGINT <<FK>>
-    usuario_comercial_id : BIGINT <<FK>>
     excepcion_comercial_id : BIGINT <<FK>>
     * fecha_inicio : DATE
     * plan_contratado : VARCHAR(80)
@@ -442,14 +439,12 @@ package "Sistema" #FFFBE0 {
 cliente ||--o{ asignacion_cliente : cliente
 usuario ||--o{ asignacion_cliente : usuario
 usuario |o--o{ cliente : usuario_responsable
-tarea |o--o{ cliente : tarea_eliminar
 contacto ||--o{ contacto_canal : contacto
 cliente ||--o{ cliente_contacto : cliente
 contacto ||--o{ cliente_contacto : contacto
 cliente ||--o{ cliente_etiqueta : cliente
 etiqueta ||--o{ cliente_etiqueta : etiqueta
 cliente ||--o| suscripcion : cliente
-tarifa_rango ||--o{ suscripcion : tarifa_rango
 excepcion_comercial |o--o{ suscripcion : excepcion_comercial
 cliente ||--o{ factura : cliente
 suscripcion |o--o{ factura : suscripcion

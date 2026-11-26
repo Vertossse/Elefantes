@@ -32,7 +32,7 @@ El diagrama completo está en `entrega2/diagramas/modelo_datos.puml` (fuente Pla
 | `asignacion_cliente` | (historial de responsables) | Quién ha llevado a cada cliente a lo largo del tiempo. |
 | `cliente` | Cliente | Empresas que contratan el servicio. Estados ACTIVO, PAUSADO e INACTIVO; nunca se borra la fila. |
 | `contacto` | Contacto | Personas de contacto con su rol, idioma y estado. |
-| `contacto_canal` | Contacto (`canalesConsentidos`) | Canales (correo, WhatsApp) que el contacto ha consentido. |
+| `contacto_canal` | Contacto (`canalesConsentidos`) | Canales (correo, WhatsApp) que el contacto ha consentido, con el correo o teléfono de cada uno. |
 | `cliente_contacto` | (agregación) | Cliente y contacto, de muchos a muchos. |
 | `etiqueta` | Etiqueta | Clasificación libre de clientes. |
 | `cliente_etiqueta` | (agregación) | Cliente y etiqueta, de muchos a muchos. |
@@ -42,7 +42,7 @@ El diagrama completo está en `entrega2/diagramas/modelo_datos.puml` (fuente Pla
 | Tabla | Clase de origen | Qué guarda |
 |---|---|---|
 | `tarifa_rango` | TarifaRango | Tramos de facturación con su importe mensual. Solo los edita el SAD. |
-| `suscripcion` | Suscripcion | Contrato mensual de un cliente. Guarda el precio acordado aunque el tramo cambie y, si la tiene, la excepción comercial aplicada. |
+| `suscripcion` | Suscripcion | Contrato mensual de un cliente. Guarda el precio acordado aunque el tramo cambie y, si la tiene, la excepción comercial aplicada. Pertenece a un solo cliente. |
 | `excepcion_comercial` | ExcepcionComercial | Descuentos y condiciones configuradas en el sistema (descuento temporal, primer mes gratis, precio pactado, sin prorrateo). |
 
 ### Facturación
@@ -105,7 +105,7 @@ El diagrama completo está en `entrega2/diagramas/modelo_datos.puml` (fuente Pla
 
 - `cliente (1)` — `suscripcion (1)`: cada cliente tiene una sola suscripción y no existe sin él (composición, FK obligatoria y única).
 - `suscripcion (0..N)` — `excepcion_comercial (0..1)`: una suscripción puede tener una excepción, y una misma excepción configurada puede usarse en varias suscripciones. La suscripción guarda la referencia.
-- `tarifa_rango (1)` — `suscripcion (0..N)`: un tramo lo usan muchas suscripciones. `tarifa_rango (1)` — `revision_anual_tarifa (0..N)`: el tramo propuesto en cada revisión.
+- `tarifa_rango (1)` — `revision_anual_tarifa (0..N)`: el tramo propuesto en cada revisión anual. La suscripción no guarda el tramo: guarda el precio acordado.
 - `cliente (1)` — `asignacion_cliente (0..N)`: un cliente acumula asignaciones a lo largo del tiempo. `usuario (1)` — `asignacion_cliente (0..N)`: un empleado ha llevado varios clientes.
 - `cliente (N)` — `contacto (N)` mediante `cliente_contacto`; `cliente (N)` — `etiqueta (N)` mediante `cliente_etiqueta`. `contacto (1)` — `contacto_canal (1..N)`: cada contacto tiene al menos un canal consentido.
 - `cliente (1)` — `factura (0..N)`: un cliente puede no tener facturas todavía. Una factura recurrente además apunta a su suscripción.
@@ -169,10 +169,8 @@ La notación gráfica no valida estas reglas, por eso se describen aquí:
 
 ## Decisiones abiertas
 
-1. `cliente.tarea_eliminar_id`: qué tarea es `idTareaEliminar` de la clase Cliente.
-2. `contacto_canal.valor`: qué guarda el texto del mapa `canalesConsentidos`.
-3. Referencias que están en el ER pero no en las clases finales: `factura_rectificativa.factura_original_id` (FAC-06 la exige), `suscripcion.tarifa_rango_id`, `suscripcion.usuario_comercial_id` y la tabla `asignacion_cliente` (historial de responsables).
+1. `asignacion_cliente` (historial de responsables) no está en las clases finales. Se mantiene en el ER: el historial se podría recuperar también de los movimientos de asignación, pero así se consulta directamente. Conviene añadirlo a las clases como una lista.
+2. `factura_rectificativa.factura_original_id` no está en la clase Factura_Rectificada, pero FAC-06 exige vincular la rectificativa con la original. Se conserva y conviene añadirlo a las clases.
+3. Las columnas de copia de `factura_concepto` (precio, descripción, impuesto) no están en las clases; hacen falta para no alterar facturas antiguas (RNG-14).
 4. Los filtros guardados (`FiltroClientes`, `FiltroFacturas`...) están marcados como `<<entity>>` en las clases. En el ER van como filas de `ajustes_sistema` (tipo FILTRO), no como tablas.
 5. Dónde se guarda el resumen de los procesos automáticos (decimocuarta subclase de movimiento).
-6. En las clases hay una asociación `Movimiento --> Notificacion` que no se ha pasado: `envio_comunicacion` ya referencia la notificación.
-7. Las columnas de copia de `factura_concepto` (precio, descripción, impuesto) no están en las clases; hacen falta para no alterar facturas antiguas (RNG-14).
