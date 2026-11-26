@@ -1,0 +1,109 @@
+@startuml
+title CU-28: Supervisar el sistema
+
+actor SuperAdministrador
+participant GestorAprobaciones
+participant GestorTareas
+participant RepositorioTareas
+participant GestorNotificaciones
+participant RepositorioNotificacion
+participant GestorMovimientos
+participant RepositorioMovimiento
+participant GestorCopiasSeguridad
+participant RepositorioCopias
+database Database
+
+== FASE 1: Revisar la auditoría de las acciones clave y la aprobación o rechazo de los cambios ==
+SuperAdministrador -> GestorAprobaciones : solicitudesAprobadas(Date)
+note right
+Precondición: sesión iniciada con rol de superadministrador.
+Este gestor le pedirá al de tareas y al de notificaciones
+la información de los movimientos clave aprobados o rechazados
+utilizando los filtros correspondientes.
+end note
+
+group Obtener las tareas relacionadas a la auditoría
+  GestorAprobaciones -> GestorTareas : obtenerTareas(List<Filtro>)
+  GestorTareas -> RepositorioTareas : obtenerTareas(List<Filtro>)
+  RepositorioTareas -> Database : Consulta
+  Database --> RepositorioTareas : List<Tarea>
+  RepositorioTareas --> GestorTareas : List<Tarea>
+  GestorTareas --> GestorAprobaciones : List<Tarea>
+end group
+
+group Obtener las notificaciones relacionadas a la auditoría
+  GestorAprobaciones -> GestorNotificaciones : obtenerNotificaciones(List<Filtro>)
+  GestorNotificaciones -> RepositorioNotificacion : obtenerNotificaciones(List<Filtro>)
+  RepositorioNotificacion -> Database : Consulta
+  Database --> RepositorioNotificacion : List<Notificacion>
+  RepositorioNotificacion --> GestorNotificaciones : List<Notificacion>
+  GestorNotificaciones --> GestorAprobaciones : List<Notificacion>
+end group
+
+note over GestorNotificaciones
+Estos 2 grupos no necesariamente se ejecutarán
+uno detrás del otro: puede haber una ejecución
+concurrente de ellos para agilizar la recuperación
+de ambos elementos, pero se pone así para mayor claridad.
+end note
+
+GestorAprobaciones --> SuperAdministrador : Tuple2<List<Tarea>, List<Notificacion>>
+
+== FASE 1.1: Decidir sobre los cambios en las preconfiguraciones ==
+alt Los cambios han sido aprobados
+  SuperAdministrador -> GestorAprobaciones : aplicarCambiosPreconfiguracion(Solicitud)
+  GestorAprobaciones -> Database : Actualizar preconfiguraciones
+  Database --> GestorAprobaciones : OK
+  GestorAprobaciones --> SuperAdministrador : Cambios aplicados
+else Los cambios han sido rechazados (flujo de cancelación)
+  SuperAdministrador -> GestorAprobaciones : cancelarCambiosPreconfiguracion(Solicitud)
+  GestorAprobaciones --> SuperAdministrador : Cambios cancelados, las preconfiguraciones se mantienen
+end
+
+== FASE 2: Consultar la tabla de salud ==
+loop Varias veces en función de si se restauran o no copias de seguridad
+  group Obtener los movimientos del sistema y errores
+    SuperAdministrador -> GestorMovimientos : consultarMovimientos(List<Filtro>)
+    note right
+    En la implementación, estos filtros serán los que permitan obtener por
+    un lado las acciones normales del sistema y por otro los errores cometidos.
+    end note
+    GestorMovimientos -> RepositorioMovimiento : consultarMovimientos(List<Filtro>)
+    RepositorioMovimiento -> Database : Consulta
+    Database --> RepositorioMovimiento : List<Movimiento>
+    RepositorioMovimiento --> GestorMovimientos : List<Movimiento>
+    GestorMovimientos --> SuperAdministrador : List<Movimiento>
+  end group
+
+  group Obtener las notificaciones (correos enviados), no solo las de aprobaciones
+    SuperAdministrador -> GestorNotificaciones : obtenerNotificaciones(List<Filtro>)
+    GestorNotificaciones -> RepositorioNotificacion : obtenerNotificaciones(List<Filtro>)
+    RepositorioNotificacion -> Database : Consulta
+    Database --> RepositorioNotificacion : List<Notificacion>
+    RepositorioNotificacion --> GestorNotificaciones : List<Notificacion>
+    GestorNotificaciones --> SuperAdministrador : List<Notificacion>
+  end group
+
+  note over SuperAdministrador, GestorCopiasSeguridad : FASE 3 (flujo alternativo): restaurar una copia de seguridad
+  opt El superadministrador decide que un elemento requiere restaurar una copia
+    SuperAdministrador -> GestorCopiasSeguridad : obtenerCopias(elemento)
+    GestorCopiasSeguridad -> RepositorioCopias : obtenerCopias(elemento)
+    RepositorioCopias -> Database : Consulta
+    Database --> RepositorioCopias : List<CopiaSeguridad>
+    RepositorioCopias --> GestorCopiasSeguridad : List<CopiaSeguridad>
+    GestorCopiasSeguridad --> SuperAdministrador : List<CopiaSeguridad>
+
+    SuperAdministrador -> GestorCopiasSeguridad : restaurarCopia(CopiaSeguridad)
+    alt Confirma la operación
+      GestorCopiasSeguridad -> RepositorioCopias : restaurarCopia(CopiaSeguridad)
+      RepositorioCopias -> Database : Restaurar estado de la copia
+      Database --> RepositorioCopias : Resultado
+      RepositorioCopias --> GestorCopiasSeguridad : Resultado
+      GestorCopiasSeguridad --> SuperAdministrador : Copia restaurada (o fallo técnico)
+    else Cancela la operación
+      GestorCopiasSeguridad --> SuperAdministrador : Operación cancelada, sin cambios
+    end
+  end
+end loop
+
+@enduml

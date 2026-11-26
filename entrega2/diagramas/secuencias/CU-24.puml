@@ -1,0 +1,57 @@
+@startuml
+title CU-24: Consultar el dashboard financiero
+
+actor Administrador
+participant Dashboard
+participant GestorCobros
+participant RepositorioCobros
+database Database
+
+== FASE 1: Mostrar los datos financieros (flujo principal) ==
+Administrador -> Dashboard : abrirDashboardFinanciero()
+note right
+Precondición: sesión iniciada con rol de administrador.
+Por defecto se muestra un periodo (p. ej. mensual).
+end note
+
+Dashboard -> GestorCobros : obtenerDatosFinancieros(Periodo)
+note right
+Periodo: SEMANAL, MENSUAL o TRIMESTRAL.
+end note
+GestorCobros -> RepositorioCobros : obtenerDatosFinancieros(Periodo)
+RepositorioCobros -> Database : PedirDatosFinanciacion(Periodo)
+Database --> RepositorioCobros : Map<String, double>
+RepositorioCobros --> GestorCobros : Map<String, double>
+GestorCobros --> Dashboard : Map<String, double>
+note right
+Cifras devueltas: facturado, cobrado, pendiente, vencido,
+tiempo medio de cobro, mayores deudas,
+recurrente esperado y previsión simple.
+end note
+Dashboard --> Administrador : Visualización de las cifras
+
+== FASE 2: Cambiar el periodo de visualización ==
+opt El administrador elige otro periodo (semanal, mensual o trimestral)
+  Administrador -> Dashboard : seleccionarPeriodo(Periodo)
+  Dashboard -> GestorCobros : obtenerDatosFinancieros(Periodo)
+  GestorCobros -> RepositorioCobros : obtenerDatosFinancieros(Periodo)
+  RepositorioCobros -> Database : PedirDatosFinanciacion(Periodo)
+  Database --> RepositorioCobros : Map<String, double>
+  RepositorioCobros --> GestorCobros : Map<String, double>
+  GestorCobros --> Dashboard : Map<String, double>
+  Dashboard --> Administrador : Visualización actualizada
+end
+
+== FASE 3: Consultar el detalle de una cifra ==
+opt El administrador selecciona una cifra concreta
+  Administrador -> Dashboard : seleccionarCifra(cifra)
+  Dashboard -> GestorCobros : obtenerDetalleCifra(cifra, Periodo)
+  GestorCobros -> RepositorioCobros : obtenerDetalleCifra(cifra, Periodo)
+  RepositorioCobros -> Database : PedirDetalleCifra(cifra, Periodo)
+  Database --> RepositorioCobros : List<DetalleCifra>
+  RepositorioCobros --> GestorCobros : List<DetalleCifra>
+  GestorCobros --> Dashboard : List<DetalleCifra>
+  Dashboard --> Administrador : Versión detallada de la cifra
+end
+
+@enduml
