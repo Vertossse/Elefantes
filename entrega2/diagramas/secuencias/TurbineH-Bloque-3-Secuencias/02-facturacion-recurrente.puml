@@ -1,0 +1,40 @@
+@startuml 02-facturacion-recurrente
+title TurbineH · CU-14 · Generar facturas recurrentes
+skinparam shadowing false
+hide footbox
+autonumber
+
+participant Reloj as R
+control GestorFacturas as G
+entity Suscripcion as S
+database RepositorioFacturas as RF
+entity FacturaRecurrente as F
+
+R -> G : generarRecurrentes(mes)
+note over R, G : El día 1 del mes o al recuperar un proceso incompleto.
+loop Por cada suscripción del mes
+  G -> S : debeFacturarse(mes)
+  S --> G : sí o no
+  alt La suscripción debe facturarse
+    G -> RF : buscarRecurrente(suscripcion, mes)
+    RF --> G : factura existente o sin coincidencia
+    alt Factura ya emitida
+      G -> G : conservar la emisión existente
+    else Mensualidad pendiente
+      opt Todavía no hay borrador
+        G -> S : calcularProrrateoPrimerMes()\nsi corresponde
+        G -> F : recalcularTotales()
+        G -> RF : guardar(borrador recurrente)
+      end
+      note over G, RF
+        Una factura por suscripción y mesFacturado.
+        Si la ejecución se repite, se retoma el borrador existente.
+      end note
+      ref over G, F : CU-13 · Validar y emitir con las reglas de la serie
+    end
+  else Suscripción pausada, cancelada o futura
+    G -> G : continuar con la siguiente suscripción
+  end
+end
+G --> R : ejecución finalizada
+@enduml

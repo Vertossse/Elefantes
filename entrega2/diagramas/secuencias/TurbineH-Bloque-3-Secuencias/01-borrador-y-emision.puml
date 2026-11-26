@@ -1,0 +1,50 @@
+@startuml 01-borrador-y-emision
+title TurbineH · CU-12 y CU-13 · Crear y emitir una factura puntual
+skinparam shadowing false
+hide footbox
+autonumber
+
+actor Usuario as U
+control GestorFacturas as G
+participant AutenticadorValidador as A
+database RepositorioFacturas as R
+entity FacturaPuntual as F
+control GestorMovimientos as M
+
+U -> G : crearBorrador(cliente)
+G -> A : comprobarPermiso(usuario, operación, cliente)
+alt Acceso autorizado
+  G --> U : factura puntual en borrador
+  loop Por cada concepto seleccionado
+    U -> G : añadirConcepto(factura, concepto)
+    note right of G : Se copian el nombre y el precio de ese momento.
+  end
+  G -> F : recalcularTotales()
+  U -> G : guardarBorrador()
+  G -> R : guardar(factura)
+  G --> U : borrador guardado
+  opt El usuario confirma la emisión
+    U -> G : validarEmision(factura)
+    note right of G
+      Se comprueban permisos, datos fiscales, contacto
+      de facturación y periodo aplicable.
+    end note
+    alt Validación favorable y aprobación disponible si procede
+      U -> G : emitir(factura)
+      G -> G : obtener el siguiente número de la serie\nde forma atómica en AjustesSistema
+      G -> F : emitir(numero, fecha)
+      G -> R : guardar(factura)
+      G -> M : registrarMovimiento(GeneracionFactura, usuario, detalle)
+      ref over G, M : Entregar factura; si falla, continuar por CU-17
+      G --> U : factura emitida
+    else Hace falta aprobación
+      ref over G : CU-11 · Resolver SolicitudAprobacion antes de emitir
+      G --> U : el borrador queda pendiente de aprobación
+    else Datos incompletos o periodo incompatible
+      G --> U : indicar bloqueo y conservar borrador
+    end
+  end
+else Acceso denegado
+  G --> U : operación rechazada
+end
+@enduml
