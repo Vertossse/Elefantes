@@ -5,8 +5,6 @@ autonumber
 title SEC-08 - Gestión de la suscripción de un cliente
 
 actor "Usuario\n(AD / SA / UO)"     as Usuario
-boundary "FichaCliente"             as Ficha
-boundary "VentanaSuscripcion"       as Ventana
 control "GestorSuscripciones"       as GS
 control "GestorClientes"            as GC
 control "AutenticadorValidador"     as AV
@@ -14,88 +12,73 @@ control "GestorMovimientos"         as GM
 entity "Cliente"                    as Cliente
 entity "Suscripcion"                as Suscripcion
 entity "TarifaRango"                as Tarifa
-database "RepositorioSuscripciones" as RS
-database "RepositorioClientes"      as RC
+database "RepositorioCliente"       as RC
+database "Repositorio<Suscripcion>" as RS
 
-Usuario -> Ficha : abrir ficha del cliente
-Ficha -> GC : obtenerClientePorNif(nif)
-GC -> RC : buscarPorNif(nif)
+Usuario -> GS : obtenerDatosCliente(nif)
+GS -> GC : obtenerClientePorNif(nif)
+GC -> RC : buscarPuntual(idCliente)
 RC --> GC : cliente
-GC --> Ficha : cliente
-Ficha -> Ventana : abrirSeccionSuscripcion(cliente)
-Ventana -> GS : obtenerSuscripcion(cliente)
+GC --> GS : cliente
 GS -> RS : buscarPorCliente(cliente)
 RS --> GS : suscripcion
-GS --> Ventana : suscripcion
-Ventana --> Usuario : mostrarFormulario(cliente)
+GS --> Usuario : cliente, suscripcion
 
-Usuario -> Ventana : introducir inicio, plan, tarifa, responsable, plazo y contrato
+Usuario -> GS : solicitarAltaSuscripcion(inicio, plan, tarifa, responsable, plazo, contrato)
 opt Inicio distinto del día 1 y sin prorrateo
-  Ventana -> GS : calcularProrrateo(suscripcion)
   GS -> Suscripcion : calcularProrrateoPrimerMes()
   Suscripcion --> GS : importeProrrateo
-  GS --> Ventana : importeProrrateo
-  Ventana --> Usuario : previsualizarProrrateo(importeProrrateo)
+  GS --> Usuario : importeProrrateo
 end
 
-Usuario -> Ventana : confirmar()
-Ventana -> GS : crearSuscripcion(cliente, inicio, plan, tarifa, responsable, plazo, contrato, sinProrrateo)
+Usuario -> GS : crearSuscripcion(cliente, inicio, plan, tarifa, responsable, plazo, contrato, sinProrrateo)
 GS -> AV : comprobarPermiso(usuario, "crearSuscripcion", cliente)
 AV --> GS : boolean
 
 alt Sin permiso
-  GS --> Ventana : error de permisos
-  Ventana --> Usuario : mostrarErrorValidacion(mensaje)
+  GS --> Usuario : error de permisos
 else Permiso concedido
   GS -> Cliente : tieneDatosFiscalesCompletos()
   Cliente --> GS : boolean
   alt Faltan datos fiscales
-    GS --> Ventana : error de datos fiscales
-    Ventana --> Usuario : mostrarErrorValidacion(mensaje)
+    GS --> Usuario : error de datos fiscales
   else Datos fiscales completos
     GS -> Tarifa : esValidaEn(inicio)
     Tarifa --> GS : boolean
     alt Tarifa no vigente
-      GS --> Ventana : error de tarifa
-      Ventana --> Usuario : mostrarErrorValidacion(mensaje)
+      GS --> Usuario : error de tarifa
     else Tarifa vigente
       GS -> Suscripcion : crear(inicio, plan, tarifa, responsable, plazo, contrato)
-      GS -> RS : guardar(suscripcion)
+      GS -> RS : agregar(suscripcion)
       GS -> GM : registrarAuditoria("Suscripcion", idSuscripcion, Alta, usuario, null, datos)
       GM --> GS : registrado
-      GS --> Ventana : suscripcion
-      Ventana --> Usuario : confirmación
+      GS --> Usuario : suscripcion creada
     end
   end
 end
 
 opt Pausar la suscripción
-  Usuario -> Ventana : seleccionar Pausar
-  Ventana --> Usuario : solicitarDatosPausa()
-  Usuario -> Ventana : motivo, fechaInicioPausa y fechaFinPrevista
-  Ventana -> GS : pausar(suscripcion, motivo, inicio, finPrevisto)
+  Usuario -> GS : pausarSuscripcion(suscripcion, motivo, inicio, finPrevisto)
   GS -> Suscripcion : esPausaValida(motivo, inicio, finPrevisto)
   Suscripcion --> GS : boolean
   alt Pausa inválida
-    GS --> Ventana : error de validación
-    Ventana --> Usuario : mostrarErrorValidacion(mensaje)
+    GS --> Usuario : error de validación
   else Pausa válida
     GS -> Suscripcion : pausar(motivo, inicio, finPrevisto)
-    GS -> RS : guardar(suscripcion)
+    GS -> RS : actualizar(suscripcion)
     GS -> GM : registrarAuditoria("Suscripcion", idSuscripcion, Modificacion, usuario, estadoAnterior, Pausada)
-    GS --> Ventana : suscripción pausada
-    Ventana --> Usuario : confirmación
+    GM --> GS : registrado
+    GS --> Usuario : suscripción pausada
   end
 end
 
 opt Reactivar la suscripción
-  Usuario -> Ventana : seleccionar Reactivar
-  Ventana -> GS : reactivar(suscripcion)
+  Usuario -> GS : reactivarSuscripcion(suscripcion)
   GS -> Suscripcion : reactivar()
-  GS -> RS : guardar(suscripcion)
+  GS -> RS : actualizar(suscripcion)
   GS -> GM : registrarAuditoria("Suscripcion", idSuscripcion, Modificacion, usuario, Pausada, Activa)
-  GS --> Ventana : suscripción activa
-  Ventana --> Usuario : confirmación
+  GM --> GS : registrado
+  GS --> Usuario : suscripción activa
 end
 
 @enduml

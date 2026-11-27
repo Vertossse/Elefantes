@@ -4,37 +4,27 @@ skinparam maxMessageSize 180
 autonumber
 title SEC-11 - Aprobación o rechazo de solicitudes
 
-actor "Usuario\n(AD / SA)"                  as Usuario
-boundary "BandejaAprobaciones"              as Bandeja
-boundary "VentanaAprobacion"                as Ventana
-control "GestorAprobaciones"                as GA
-control "AutenticadorValidador"             as AV
-control "GestorMovimientos"                 as GM
-entity "SolicitudAprobacion"                as Solicitud
-entity "RevisionAnual"                      as Revision
-entity "TarifaRango"                        as Tarifa
-database "RepositorioSolicitudesAprobacion" as RSA
-database "RepositorioRevisionesAnuales"     as RRA
-database "RepositorioUsuarios"              as RU
+actor "Usuario\n(AD / SA)"                       as Usuario
+control "GestorAprobaciones"                     as GA
+control "AutenticadorValidador"                  as AV
+control "GestorMovimientos"                      as GM
+entity "SolicitudAprobacion"                     as Solicitud
+entity "RevisionAnual"                           as Revision
+database "Repositorio<SolicitudAprobacion>"      as RSA
+database "Repositorio<RevisionAnual>"            as RRA
+database "RepositorioEmpleado"                   as RE
 
-Usuario -> Bandeja : abrir bandeja de aprobaciones
-Bandeja -> GA : listarPendientes(usuario)
+Usuario -> GA : listarPendientes(usuario)
 GA -> RSA : buscarPendientesPorAprobador(usuario)
 RSA --> GA : solicitudes
 GA -> RRA : buscarPendientes()
 RRA --> GA : revisiones
-GA --> Bandeja : tareas
-Bandeja --> Usuario : mostrarPendientes(tareas)
+GA --> Usuario : tareas
 
-Usuario -> Bandeja : seleccionar tarea
-Bandeja -> GA : obtenerDetalle(tarea)
-GA --> Bandeja : tarea
-Bandeja -> Ventana : abrir(tarea)
-Ventana --> Usuario : mostrarDetalle(tarea)
-Ventana --> Usuario : mostrarEfecto(valorAnterior, valorNuevo)
+Usuario -> GA : obtenerDetalle(tarea)
+GA --> Usuario : tarea, valorAnterior, valorNuevo
 
-Usuario -> Ventana : aprobar(comentario)
-Ventana -> GA : aprobar(tarea, aprobador, comentario)
+Usuario -> GA : aprobar(tarea, aprobador, comentario)
 note right of GA
   El gestor despacha según el tipo de tarea:
   SolicitudAprobacion o RevisionAnual.
@@ -43,39 +33,34 @@ GA -> AV : comprobarPermiso(aprobador, "aprobar", cliente)
 AV --> GA : boolean
 
 alt Sin permiso
-  GA --> Ventana : error de permisos
-  Ventana --> Usuario : mostrarError(mensaje)
+  GA --> Usuario : error de permisos
 else Permiso concedido
   GA -> AV : comprobarSeparacionFunciones(solicitante, aprobador)
   AV --> GA : boolean
   alt Autoaprobación no permitida
-    GA --> Ventana : error de separación de funciones
-    Ventana --> Usuario : mostrarError(mensaje)
+    GA --> Usuario : error de separación de funciones
   else Separación válida
     GA -> AV : validarImporteEnUmbral(valorSolicitado, umbralAprobacion)
     AV --> GA : boolean
     alt Importe por encima del umbral
-      GA --> Ventana : derivar al superadministrador
-      Ventana --> Usuario : mostrarError(mensaje)
+      GA --> Usuario : derivar al superadministrador
     else Dentro del umbral
       alt La tarea es una SolicitudAprobacion
         GA -> Solicitud : aprobar(aprobador, comentario)
         GA -> GA : aplicarOperacion(solicitud)
-        GA -> RSA : guardar(solicitud)
+        GA -> RSA : actualizar(solicitud)
         GA -> GM : registrarAuditoria("SolicitudAprobacion", idSolicitud, Modificacion, aprobador, Pendiente, Aprobada)
         GM --> GA : registrado
         GA -> GA : notificarSolicitante(solicitud)
-        GA --> Ventana : solicitud aprobada
-        Ventana --> Usuario : confirmación
+        GA --> Usuario : solicitud aprobada
       else La tarea es una RevisionAnual
         GA -> Revision : aprobar(aprobador, tarifaCalculada)
-        GA -> RRA : guardar(revision)
+        GA -> RRA : actualizar(revision)
         GA -> GM : registrarAuditoria("RevisionAnual", idRevision, Modificacion, aprobador, precioAnterior, precioNuevo)
         GM --> GA : registrado
         GA -> GA : notificarSolicitante(revision)
-        GA --> Ventana : revisión aprobada
-        Ventana --> Usuario : confirmación
-        note right of Ventana
+        GA --> Usuario : revisión aprobada
+        note right of GA
           La revisión aprobada aplica la nueva
           tarifa a la suscripción del cliente.
         end note
@@ -85,32 +70,28 @@ else Permiso concedido
 end
 
 opt Rechazo de la tarea
-  Usuario -> Ventana : rechazar(motivo)
-  Ventana -> GA : rechazar(solicitud, aprobador, motivo)
+  Usuario -> GA : rechazar(tarea, aprobador, motivo)
   GA -> AV : comprobarPermiso(aprobador, "rechazar", cliente)
   GA -> Solicitud : rechazar(aprobador, motivo)
-  GA -> RSA : guardar(solicitud)
+  GA -> RSA : actualizar(solicitud)
   GA -> GM : registrarAuditoria("SolicitudAprobacion", idSolicitud, Modificacion, aprobador, Pendiente, Rechazada)
+  GM --> GA : registrado
   GA -> GA : notificarSolicitante(solicitud)
-  GA --> Ventana : solicitud rechazada
-  Ventana --> Usuario : confirmación
+  GA --> Usuario : solicitud rechazada
 end
 
 opt Reasignación por ausencia
-  Usuario -> Ventana : reasignar(nuevoAprobador)
-  Ventana -> GA : reasignar(tarea, nuevoAprobador, administrador)
+  Usuario -> GA : reasignar(tarea, nuevoAprobador, administrador)
   GA -> AV : comprobarPermiso(administrador, "reasignar", cliente)
   AV --> GA : boolean
   alt Sin permiso
-    GA --> Ventana : error de permisos
-    Ventana --> Usuario : mostrarError(mensaje)
+    GA --> Usuario : error de permisos
   else Permiso concedido
     GA -> Solicitud : reasignar(nuevoAprobador)
-    GA -> RSA : guardar(solicitud)
+    GA -> RSA : actualizar(solicitud)
     GA -> GM : registrarAuditoria("SolicitudAprobacion", idSolicitud, Reasignacion, administrador, aprobadorAnterior, nuevoAprobador)
     GM --> GA : registrado
-    GA --> Ventana : tarea reasignada
-    Ventana --> Usuario : confirmación
+    GA --> Usuario : tarea reasignada
   end
 end
 
