@@ -3,14 +3,20 @@
 header CU-27
 title Flujo Principal 
 actor SuperAdministrador
+control GestorSistema 
 database Database
+control GestorAprobaciones
+control GestorTareas 
+boundary RepositorioTarea 
+control GestorNotificaciones
+boundary Reloj 
+control GestorMovimientos
+boundary RepositorioMovimiento 
 == FASE 1: Obtener los ajustes del sistema == 
 group Obtener los ajustes del sistema 
   SuperAdministrador -> GestorSistema : obtenerAjustes()
-  GestorSistema -> RepositorioSistema : obtenerAjustes()
-  RepositorioSistema -> Database : Consulta 
-  Database --> RepositorioSistema : AjustesSistema
-  RepositorioSistema --> GestorSistema : AjustesSistema 
+  GestorSistema -> Database : Consulta 
+  Database --> GestorSistema : AjustesSistema
   GestorSistema --> SuperAdministrador : AjustesSistema
 end group 
 
@@ -20,61 +26,55 @@ note over SuperAdministrador
 end note
 
 == FASE 2: Pedir la aprobacion para los cambios ==
-group Aprobar los cambios y avisar a la empresa 
-  GestorSistema -> GestorAprobaciones
-  GestorAprobaciones -> GestorNotificaciones
+group Pedir a la empresa aprobacion de los cambios 
+  GestorSistema -> GestorAprobaciones : solicitarCambioAjustes(AjustesSistema, AjusteSistemaPuntual, String)
+  GestorAprobaciones -> GestorTareas : crearTarea(Tipo_Tarea)
+  GestorTareas -> RepositorioTarea : agregar(Tarea)
+  RepositorioTarea -> Database : Consulta de Guardado
+  GestorAprobaciones -> GestorNotificaciones : enviarNotificacion(Notificacion)
   note right 
   Este gestor enviará un mensaje a los altos cargos 
   de la empresa
   end note 
-  GestorNotificaciones --> GestorAprobaciones
 end group 
-group Guardar la tarea de aprobacion
-  GestorAprobaciones -> GestorTareas : guardarTarea(datos)
-  GestorTareas -> RepositorioTarea : guardarTarea(datos)
-  RepositorioTarea -> Database : guardarTarea(datos)
-  RepositorioTarea --> GestorTareas
 
-  note over GestorNotificaciones
-  Utlizando el CU-31 cuyo diagrama estará más adelante
-  la empresa puede ordenar la aprobacion o negacion de
-  los cambios, eso le llegará al gestor de aprobaciones
-  quien le pedira al de tareas cumplirla o eliminarla
-  end note 
-end group 
-  
-group Pedir la realizacion de los cambios 
-GestorAprobaciones -> GestorTareas : atenderTarea(datos)
-GestorTareas -> RepositorioTarea : obtenerTarea(datos)
-RepositorioTarea -> Database : Consulta
-Database --> RepositorioTarea : Tarea
-RepositorioTarea --> GestorTarea : Tarea
-note right
-  Este paso se realiza en esta parte del diagrama por 
-  el tipo de tarea que estamos resolviendo 
-end note
-GestorTareas -> Tarea : setEstado(APROBADA)
-Tarea -> Tarea : setEstado(APROBADA) 
-GestorTarea -> RepositorioTarea : actualizarTarea(Tarea)
-RepositorioTarea -> Database : actualizarTarea(Tarea)
-end group
+group Una vez la empresa tome su decisión 
+GestorNotificaciones -> GestorNotificaciones : obtenerNotificacionesRecibidas()
+GestorNotificaciones -> GestorNotificaciones : comunicarResultado(int)
+GestorNotificaciones -> GestorTareas : obtenerTareaPuntual(int)
+GestorTareas -> RepositorioTarea : buscarPuntual(int)
+RepositorioTarea -> Database : Consulta de Busqueda 
+Database --> RepositorioTarea : SolicitudAprobacion
+RepositorioTarea --> GestorTareas : SolicitudAprobacion
+GestorTareas --> GestorNotificaciones : SolicitudAprobacion
 
+alt Si los cambios han sido denegados 
+GestorNotificaciones -> GestorAprobaciones : rechazar(SolicitudAprobacion)
+else Si han sido aprobados 
 == FASE 3: Realizar los cambios == 
 group Atender la Tarea
-Reloj -> GestorTareas : obtenerTarea(datos)
-GestorTareas -> RepositorioTarea : obtenerTarea(datos)
+Reloj -> Reloj : resolverTareas()
+Reloj -> GestorTareas : obtenerTareas(List<Filtro>)
+GestorTareas -> RepositorioTarea : buscarFiltrado(List<Filtro>)
 RepositorioTarea -> Database : Consulta 
-Database --> RepositorioTarea : Tarea
-RepositorioTarea --> GestorTareas : Tarea
-GestorTareas -> GestorTareas : atendertareas(Tarea)
+Database --> RepositorioTarea : List<Tarea>
+RepositorioTarea --> GestorTareas : List<Tarea>
+GestorTareas -> GestorTareas : resolverTarea(Tarea)
 end group 
 
 group Finalmente se hacen los cambios 
-GestorTareas -> GestorSistema : realizarCambios(String)
-GestorSistema -> AjustesSistema : setCambios(String)
-AjustesSistema -> AjustesSistema : setCambios(String)
-GestorSistema -> RepositorioSistema : guardarCambios(AjustesSistema)
-RepositorioSistema -> Database : Guardar
-RepositorioSistema --> GestorSistema
-end group 
+GestorTareas -> GestorSistema : aplicarCambioAjuste(AjusteSistemaPuntual, String)
+GestorSistema -> GestorSistema : guardarAjustesActualizados(AjustesSistema)
+GestorSistema -> Database : Consulta 
+end group
+end alt 
+
+== Fase 4: Guardar el estado actualizado de la Tarea y Su Movimiento Asociado == 
+GestorAprobaciones -> GestorTareas : actualizarTarea(int, Tarea)
+GestorTareas -> RepositorioTarea : actualizarTarea(int, Tarea)
+RepositorioTarea -> Database : Consulta 
+
+GestorAprobaciones -> GestorMovimientos : registrarMovimiento(RegistroTarea, SuperAdministrador)
+GestorMovimientos -> RepositorioMovimiento : agregar(Movimiento)
+RepositorioMovimiento -> Database : Guardar El movimiento
 @enduml

@@ -3,67 +3,89 @@
 header CU-31
 title Flujo Principal 
 actor Empresa
-== Fase 1: La empresa solicita una accion a la plataforma y el gestor de tareas la valida ==
+control GestorClientes 
+boundary RepositorioCliente
+control GestorFacturas 
+boundary RepositorioFacturas
+control GestorSistema 
+database Database
+control GestorNotificaciones
+boundary RepositorioNotificacion
+control AutenticadorValidador
+control GestorEmpleados
+boundary RepositorioEmpleado
+== Fase 1: La empresa solicita una accion a la plataforma y el gestor del Sistema la valida ==
 group Crear y Guardar la Tarea 
-Empresa -> GestorTareas : autenticarTareaAPI(String)
-GestorTareas -> Autenticador : atenderConsultaAPI(String)
-Autenticador --> GestorTareas : int(resultado)
-GestorTareas -> RepositorioTareas : anyadirTarea(Tarea)
-RepositorioTareas -> Database : Consulta
-
-note over RepositorioTareas
-El flujo del guardado de la tarea en la base de datos puede ser concurrente a su realizacion 
-si esta es de realización inmediata, se pone aquí para mejorar la claridad
-end note
+Empresa -> GestorSistema : atenderTareaAPI(String)
+GestorSistema -> AutenticadorValidador : validarConsultaAPI(String)
+AutenticadorValidador --> GestorSistema : boolean
 end group 
 
+alt Si la consulta es correcta 
 == Fase 2: Según el tipo de tarea se hara un cambio en un gestor u otro ==
 loop Tantas veces como peticiones haga la empresa 
-alt Si la tarea afecta al gestor de clientes 
-GestorTareas -> GestorClientes : operacion
-GestorClientes -> RepositorioCliente : operacion
-RepositorioCliente -> Database : operacion
+note right 
+Debido a la ambiguedad de lo que puede ser considerado una consulta API, 
+no se detallará explicitamente la clase, o metodo correspondiente a la operacion
+pues se espera que sea en el Gestor Del Sistema donde se contacte correctamente 
+con los gestores correspondientes, así que se pondrá una secuencia general de lo 
+que podrían ser operaciones que afecten a algunos gestores de la aplicación.
+end note 
+
+alt Si la operación afecta al gestor de clientes 
+GestorSistema -> GestorClientes : Operacion
+GestorClientes -> RepositorioCliente : Operacion
+RepositorioCliente -> Database : Consulta para la operación
+
 opt Si la operacion requiere obtener los datos de un cliente de la Database 
 Database --> RepositorioCliente : Cliente o List<Cliente>
 RepositorioCliente --> GestorClientes : Cliente o List<Cliente>
 end opt 
 
 else Si afecta al gestor de Facturas
-GestorClientes -> GestorFacturas : operacion
-GestorFacturas -> RepositorioFacturas : operacion 
-RepositorioFacturas -> Database : operacion
+note right 
+Para esta secuencia partiremos del gestor de facturas debido a la fuerte 
+composión que hay entre estas clases que hace coherente que varias operaciones
+que pidan algo sobre una factura pase primero por los clientes
+end note 
+
+GestorClientes -> GestorFacturas : Operacion
+GestorFacturas -> RepositorioFacturas : Operacion 
+RepositorioFacturas -> Database : Operacion
+
 opt Si la operacion requería obtener algún dato de la Database 
 Database --> RepositorioFacturas : Factura o List<Factura>
-RepositorioFacturas --> GestorFactura : Factura o List<Factura>
-opt Si el gestor de clientes o tareas necesita las facturas 
-  GestorFactura --> GestorClientes : Factura o List<Factura>
-  GestorClientes --> GestorTareas : Factura o List<Factura>
+RepositorioFacturas --> GestorFacturas : Factura o List<Factura>
+opt Si el gestor de clientes o del sistema necesita las facturas 
+  GestorFacturas --> GestorClientes : Factura o List<Factura>
+  GestorClientes --> GestorSistema : Factura o List<Factura>
 end opt 
 end opt 
 
 else Si afecta al de empleados
-GestorClientes -> GestorEmpleado : operacion
-GestorEmpleado -> RepositorioEmpleado : operacion 
-RepositorioEmpleado -> Database : operacion
+GestorSistema -> GestorEmpleados : Operacion
+GestorEmpleados -> RepositorioEmpleado : Operacion 
+RepositorioEmpleado -> Database : Operacion
+
 opt Si la operacion requería obtener algún dato de la Database 
 Database --> RepositorioEmpleado : Usuario o List<Usuario>
-RepositorioEmpleado --> GestorEmpleado : Usuario o List<Usuario>
-opt Si el gestor de tareas necesita los datos del empleado 
-  GestorEmpleado --> GestorClientes : Usuario o List<Usuario>
-  GestorClientes --> GestorTareas : Usuario o List<Usuario>
+RepositorioEmpleado --> GestorEmpleados : Usuario o List<Usuario>
+opt Si el gestor del sistema necesita los datos del empleado 
+  GestorEmpleados --> GestorSistema : Usuario o List<Usuario>
 end opt 
 end opt 
 
-else si afecta al de notificaciones 
-GestorClientes -> GestorNotificaciones : operacion
-GestorNotificaciones -> RepositorioNotificacion : operacion 
-RepositorioNotificacion -> Database : operacion
+else Si afecta al de notificaciones 
+GestorSistema -> GestorNotificaciones : Operacion
+GestorNotificaciones -> RepositorioNotificacion : Operacion 
+RepositorioNotificacion -> Database : Operacion
+
 opt Si la operacion requería obtener algún dato de la Database 
 Database --> RepositorioNotificacion : Notificacion o List<Notificacion>
 RepositorioNotificacion --> GestorNotificaciones : Notificacion o List<Notificacion>
-opt Si el gestor de tareas necesita las notificaciones
-  GestorNotificaciones --> GestorClientes : Notificacion o List<Notificacion>
-  GestorClientes --> GestorTareas : Notificacion o List<Notificacion>
+
+opt Si el gestor del Sistema necesita las notificaciones
+  GestorNotificaciones --> GestorSistema : Notificacion o List<Notificacion>
 end opt 
 end opt 
 end alt
@@ -73,5 +95,9 @@ Estas ramas no tienen porque ser excluyentes, según la petición podría realiz
 de una así que en este diagrama solo se mostrará la secuencia estándar de cualquier 
 gestor que pueda verse afectado por cualquier tarea 
 end note 
+
+else Si es incorrecta 
+GestorSistema --> Empresa : Error en la consulta 
+end alt 
 database Database 
 @enduml 

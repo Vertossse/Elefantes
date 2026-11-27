@@ -1,0 +1,66 @@
+@startuml
+header CU-30
+title Flujos Alternativos 
+actor SuperAdministrador
+actor Administrador
+control GestorClientes 
+boundary RepositorioCliente
+control GestorSistema 
+database Database
+control GestorAprobaciones
+control GestorNotificaciones
+control GestorAccesos 
+boundary Reloj 
+== ALTERNATIVO 1: Eliminacion de los datos del cliente == 
+alt Eliminacion por cumplimiento de la fecha 
+Reloj -> Reloj : revisarClientesYContactosLimite()
+Reloj -> GestorClientes : borrarClientesYContactoLimite()
+
+group El gestor de clientes le pide al de sistema la fecha limite para el borrado
+GestorClientes -> GestorSistema : obtenerAjustes()
+GestorSistema -> Database : Consulta
+Database --> GestorSistema : AjustesSistema
+GestorSistema --> GestorClientes : AjustesSistema
+end group  
+
+GestorClientes -> RepositorioCliente : eliminarFiltrado(List<Filtro>)
+RepositorioCliente -> Database : Consulta para la eliminacion
+
+else Eliminacion Manual 
+group Solicitar Aprobacion
+Administrador -> GestorAprobaciones : solicitarAprobacion(Cliente, double, String)
+GestorAprobaciones -> GestorNotificaciones : enviarNotificacion(Notificacion)
+note right 
+Previamente se crearía la notificacion. 
+end note 
+end group 
+end 
+
+group Eliminar al cliente 
+alt Eliminación automática por aprobación o Consulta via API superior 
+GestorNotificaciones -> GestorAprobaciones : aprobar(SolicitudAprobacion)
+GestorAprobaciones -> GestorClientes : eliminarCliente(int)
+else Eliminacion Manual por motivos de fuerza mayor
+SuperAdministrador -> GestorClientes : eliminarCliente(int)
+end 
+GestorClientes -> RepositorioCliente : eliminarPuntual(int)
+RepositorioCliente -> Database : Consulta 
+end group
+
+== ALTERNATIVO 2: Atrasar la eliminacion por reactivacion == 
+group El gestor de acceso pide que se inicialice el cliente 
+GestorAccesos -> GestorClientes : registrarCliente(datos) 
+GestorClientes -> RepositorioCliente : registrarCliente(datos)
+RepositorioCliente -> Database : Consulta existencial
+alt Si el cliente existe 
+RepositorioCliente --> GestorClientes : Cliente 
+GestorClientes -> GestorClientes : reactivarCliente(int)
+GestorClientes -> RepositorioCliente : actualizarCliente(int, Cliente)
+RepositorioCliente -> Database : Consulta 
+else Si no existe 
+RepositorioCliente -> Database : Registrar Al nuevo Cliente 
+end alt 
+Database --> RepositorioCliente 
+RepositorioCliente --> GestorClientes 
+end group 
+@enduml 

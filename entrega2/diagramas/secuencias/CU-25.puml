@@ -1,34 +1,117 @@
-@startuml 05-generacion-y-exportacion-de-informes
-title TurbineH · CU-25 · Generar y exportar un informe
-skinparam shadowing false
-hide footbox
-autonumber
+@startuml
 
-actor "Usuario autorizado" as U
-control GestorInformes as G
-participant AutenticadorValidador as A
-database RepositorioInformes as R
-control GestorMovimientos as M
+Header CU-25 
+title Flujo Principal 
+actor Usuario 
+control GestorInformes 
+boundary RepositorioInforme 
+database Database 
+control GestorClientes 
+boundary RepositorioCliente
+control GestorFacturas 
+boundary RepositorioFactura 
+control AutenticadorValidador
+control GestorMovimientos
+boundary RepositorioMovimiento
+boundary ExportadorArchivos
+entity Informe 
+boundary Reloj 
+control GestorAprobaciones
+control GestorNotificaciones
+    group Mostrar y Crear 
+== FASE 1: Pedirle los informes al gestor y filtrar == 
+    loop Tantas veces como filtrados quiera hacer el Usuario
+    Usuario -> GestorInformes : buscarInforme(List<Filtro>)
+    GestorInformes -> RepositorioInforme : buscarFiltrado(List<Filtro>)
+    RepositorioInforme -> Database : Obtiene los Informe usando los filtros
+    Database --> RepositorioInforme : List<Informe> 
+    RepositorioInforme --> GestorInformes : List<Informe>
+    GestorInformes --> Usuario : List<Informe>
+    note right 
+    Este proceso podría ejecutarse en cualquier momento
+    de la secuencia, refleja la posibilidad del empleado
+    de filtrar los informes 
+    end note 
+    end loop
 
-U -> G : generarInforme(tipo, filtro)
-G -> A : comprobarPermiso(usuario, operación, cliente)
-alt Consulta autorizada y datos suficientes
-  G -> G : aplicar filtros y preparar los datos del informe
-  G -> R : guardar(informe)
-  G -> M : registrarMovimiento(GeneracionInforme, usuario, detalle)
-  G --> U : informe con parámetros y fecha de generación
-  opt El usuario selecciona PDF o CSV
-    U -> G : exportar(informe, formato)
-    G -> A : comprobarPermiso(usuario, operación, cliente)
-    alt Exportación autorizada
-      G -> G : generar el archivo al vuelo\ny solicitar su descarga
-      G -> M : registrarAuditoria(tabla, id, accion, usuario, antes, despues)
-      G --> U : descarga solicitada
-    else Permiso denegado
-      G --> U : exportación bloqueada
-    end
-  end
-else Faltan datos o el acceso no está autorizado
-  G --> U : indicar el motivo del rechazo
-end
+== Fase 2: Crear un nuevo informe a partir de un cliente y/o una factura asociada == 
+    loop Tantas veces como el empleado lo considere
+    Usuario -> GestorClientes : buscarClientes(List<Filtro>)
+    GestorClientes -> RepositorioCliente : buscarFiltrado(List<Filtro>)
+    RepositorioCliente -> Database : Consulta 
+    Database --> RepositorioCliente : List<Cliente> 
+    RepositorioCliente --> GestorClientes : List<Cliente>
+    GestorClientes --> Usuario : List<Cliente>
+    opt Si se desean incluir detalles de la facturación en el informe 
+        Usuario -> GestorFacturas : buscarFacturas(List<Filtro>)
+        GestorFacturas -> RepositorioFactura : buscarFiltrado(List<Filtro>)
+        RepositorioFactura -> Database : Consulta
+        Database --> RepositorioFactura : List<Facturas> 
+        RepositorioFactura --> GestorFacturas : List<Factura>
+        GestorFacturas --> Usuario : List<Factura> 
+
+        note right
+        Este bloque opcional viene de que el 
+        informe puede venir de un cliente o 
+        una factura, pasando siempre por el 
+        primer bloque para ambos y solo en el 
+        segundo caso por el otro
+        end note
+    end opt 
+    
+    Usuario -> GestorInformes : generarInforme(Usuario, Cliente, Factura)
+    GestorInformes -> AutenticadorValidador : comprobarPermisos(Usuario, Cliente)
+    AutenticadorValidador --> GestorInformes : Comprobacion
+    alt El informe se puede crear sin problemas 
+    GestorInformes -> Informe : Crear El Informe 
+    Informe --> GestorInformes : Informe
+    GestorInformes -> RepositorioInforme : agregar(Informe)
+    RepositorioInforme -> Database : Guardar el Informe
+
+    GestorInformes -> GestorMovimientos : registrarMovimiento(Tipo_Movimiento, Usuario)
+    GestorMovimientos -> RepositorioMovimiento : agregar(Movimiento)
+    else Hay un error en los datos 
+    GestorInformes --> Usuario : No se crea el Informe
+    end alt 
+    
+    end loop 
+    end group 
+
+== FASE 3: Programar informes ==  
+group Programar 
+loop Tantas veces como el usuario quiera programar Exportaciones
+Usuario -> GestorInformes : programarInforme(Informe, Date)
+GestorInformes -> Informe : programarInforme(Date)
+end loop 
+end group 
+
+== FASE 4: Exportar Informe ==  
+alt Exportaciones Puntual de un informe cuya fecha se cumple  
+    Reloj -> GestorInformes : resolverExportaciones()
+    loop Por cada Informe al que le haya llegado la fecha 
+    GestorInformes -> GestorInformes : exportarInforme(Informe, Formato)
+    GestorInformes -> ExportadorArchivos : exportar(Informe, Formato)
+    end loop 
+
+else Flujo Alternativo: Exportacion Masiva 
+group Registrar La Auditoria y Pedir su Aprobacion
+    GestorInformes -> GestorMovimientos : registrarAuditoria(CSV, Factura, int, TipoAccion, JSON, JSON)
+    GestorMovimientos -> RepositorioMovimiento : agregar(Movimiento)
+    GestorMovimientos -> GestorAprobaciones : solicitarAuditoria(RegistrarAuditoria)
+    GestorAprobaciones -> GestorNotificaciones : enviarNotificacion(Notificacion)
+end group 
+
+alt Auditoria Aprobada 
+GestorAprobaciones -> GestorAprobaciones : aprobar(SolicitudAprobacion)
+GestorAprobaciones --> GestorInformes : SolicitudAprobacion
+GestorInformes -> GestorInformes : exportacionMasiva(Map<Informe, Formato>)
+loop Para cada Informe de la Exportacion 
+GestorInformes -> GestorInformes : exportarInforme(Informe, Formato)
+GestorInformes -> ExportadorArchivos : exportarInforme(Informe, Formato)
+end loop
+
+else Auditoria Rechazada
+GestorAprobaciones -> GestorAprobaciones : rechazar(SolicitudAprobacion)
+GestorAprobaciones --> GestorInformes : Se cancela la exportacion masiva 
+end alt 
 @enduml

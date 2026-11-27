@@ -1,44 +1,47 @@
-@startuml 06-cierre-y-reapertura-de-periodo
-title TurbineH · CU-29 · Cerrar y reabrir un periodo administrativo
-skinparam shadowing false
-hide footbox
-autonumber
+@startuml
 
-actor Administrador as U
-control GestorSistema as G
-participant AutenticadorValidador as A
-entity PeriodoAdministrativo as P
-entity AjustesSistema as C
-control GestorMovimientos as M
+header CU-29 
+title Flujo Principal 
+actor Administrador
+control GestorSistema 
+entity PeriodoAdministrativo
+database Database
+control GestorNotificaciones
+boundary RepositorioNotificacion
+boundary Reloj 
+entity Informe 
+control GestorInformes 
+boundary RepositorioInforme
+control GestorMovimientos
+boundary RepositorioMovimiento
+alt Cerrar el periodo
+== Fase 1 (CIERRE): Cerrar el periodo en si == 
+Administrador -> GestorSistema : cerrarPeriodo(PeriodoAdministrativo)
+GestorSistema -> PeriodoAdministrativo : cerrar()
+PeriodoAdministrativo -> PeriodoAdministrativo : setEstado(CERRADO)
 
-note over U, G : Participa AD o SAD, según la autorización.
-alt Confirma el cierre
-  U -> G : cerrarPeriodo()
-  G -> A : comprobarPermiso(usuario, operación, cliente)
-  alt Autorización válida y periodo abierto
-    G -> P : cerrar(usuario)
-    G -> M : registrarMovimiento(CierrePeriodo, usuario, detalle, entidad, id)
-    ref over G, M : CU-25 · Generar el informe de cierre del trimestre
-    G --> U : periodo cerrado e informe disponible
-  else Cierre no permitido
-    G --> U : mantener el estado del periodo e indicar el motivo
-  end
-else Confirma la reapertura
-  U -> G : reabrirPeriodo()\ncon autorización superior
-  G -> A : comprobarPermiso(usuario, operación, cliente)
-  G -> C : obtener(límite de antigüedad)
-  alt Periodo cerrado, dentro del límite y autorizado
-    ref over G, P : Crear la copia previa indicada en CU-29
-    alt Copia previa disponible
-      G -> P : reabrir(usuario, autorizacion)
-      G -> M : registrarAuditoria(tabla, id, accion, usuario, antes, despues)
-      G --> U : periodo reabierto para emitir rectificativas
-      note over P : Las facturas originales conservan sus datos.
-    else Fallo al crear la copia
-      G --> U : conservar el periodo cerrado
-    end
-  else Reapertura no permitida
-    G --> U : mantener el estado del periodo e indicar el motivo
-  end
-end
-@enduml
+== FASE 2 (CIERRE): Emitir el informe correspondiente y guardar el Movimiento ==
+group Crear y emitir el informe 
+GestorSistema -> GestorInformes : generarInformeCambioPeriodo(String, Formato, JSON, PeriodoAdministrativo)
+GestorInformes -> Informe : new Informe(int,  String, JSON, Date, int, Format)
+GestorInformes -> RepositorioInforme : agregar(Informe)
+RepositorioInforme -> Database : Consulta 
+GestorInformes -> GestorNotificaciones : registrarNotificacion(Tipo_Notificacion, String, String, String, Archivo)
+GestorNotificaciones -> RepositorioNotificacion : agregar(Notificacion)
+RepositorioNotificacion -> Database : Consulta
+GestorInformes -> GestorNotificaciones : enviarNotificacion(Notificacion) 
+end group 
+
+group Guardar el movimiento 
+GestorSistema -> GestorMovimientos : registrarMovimiento(Tipo_Movimiento, Administrador)
+GestorMovimientos -> RepositorioMovimiento : agregar(Movimiento)
+RepositorioMovimiento -> Database : Consulta 
+end group 
+
+else Reabrir un periodo 
+note over Administrador
+Realmente este diagrama de secuencia es exactamente el mismo que el anterior cambiando CERRADO por ABIERTO, y el tipo de movimiento a registrar, pero se mantien la emisión del informe y guardar el movimiento.
+end note
+end 
+database Database 
+@enduml 

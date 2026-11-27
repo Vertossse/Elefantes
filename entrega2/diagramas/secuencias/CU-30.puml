@@ -3,10 +3,16 @@
 header CU-30
 title Flujo Principal 
 actor Administrador 
+control GestorClientes 
+boundary RepositorioCliente
+database Database
+control GestorMovimientos
+boundary RepositorioMovimiento 
+
 == Fase 1: Pedir los clientes para obtener los contactos == 
 group Pedir los clientes 
-Administrador -> GestorClientes : obtenerClientes(List<Filtro>)
-GestorClientes -> RepositorioCliente : obtenerClientes(List<Filtro>)
+Administrador -> GestorClientes : recuperarClientes(List<Filtro>)
+GestorClientes -> RepositorioCliente : buscarFiltrado(List<Filtro>)
 RepositorioCliente -> Database : Consulta 
 Database --> RepositorioCliente : List<Cliente>
 RepositorioCliente --> GestorClientes : List<Cliente>
@@ -19,21 +25,16 @@ end note
 
 == Fase 2: Anonimizar los datos para el responsable asignado == 
 group Anonimizar los datos del cliente 
-Administrador -> GestorClientes : anonimizarContacto() 
-GestorClientes -> RepositorioCliente : actualizarCliente(List<Filtro>)
+Administrador -> GestorClientes : anonimizarContacto(int, Contacto) 
+GestorClientes -> GestorClientes : actualizarCliente(int, Cliente)
+GestorClientes -> RepositorioCliente : actualizar(int, Cliente)
 RepositorioCliente -> Database : Consulta 
-end group 
-
-group Guardar Tarea de la eliminacion futura 
-GestorClientes -> GestorTareas : anyadirTarea(Tipo_Tarea)
-GestorTareas -> RepositorioTareas : anyadirTarea(Tarea)
-RepositorioTareas -> Database : Consulta
 end group 
 
 == Fase 3: Guardar el Movimiento == 
 group Guardar el movimiento 
-GestorClientes -> GestorMovimientos : guardarMovimiento(Tipo_Movimiento)
-GestorMovimientos -> RepositorioMovimiento : guardarMovimiento(Movimiento)
+GestorClientes -> GestorMovimientos : guardarMovimiento(Tipo_Movimiento, Administrador)
+GestorMovimientos -> RepositorioMovimiento : guardarMovimiento(AsignacionDesasignacionContacto)
 RepositorioMovimiento -> Database : Consulta 
 end group 
 database Database 

@@ -2,35 +2,45 @@
 autonumber 
 Header CU-23
 title Flujo Principal 
-actor Empleado 
+actor Usuario 
+control GestorTareas 
+boundary RepositorioTareas 
+database Database 
+control AutenticadorValidador
+control GestorFacturas 
+boundary RepositorioFactura
+entity Factura 
+control GestorMovimientos
+boundary RepositorioMovimientos
+
 
 == FASE 1: Generar y guardar la tarea de la incidencia == 
 
-Empleado -> GestorTareas : abrirIncidencia(datos) 
-GestorTareas -> RepositorioTareas : anyadirTarea(Tarea) 
+Usuario -> GestorTareas : abrirIncidencia(Cliente, Factura)
+GestorTareas -> AutenticadorValidador : comprobarPermisos(Usuario, Cliente)
+AutenticadorValidador -> GestorTareas : Comprobacion 
+alt Asignacion Correcta
+GestorTareas -> RepositorioTareas : agregar(Tarea) 
 
 database Database 
-RepositorioTareas -> Database : guardarTarea(Tarea)
-RepositorioTareas --> GestorTareas : resultado(int) 
-
-== FASE 2: Modificar los el estado de una factura si la incidencia lo requiere == 
+RepositorioTareas -> Database : Consulta para buscar la Tarea
+== FASE 2: Modificar el estado de una factura si la incidencia lo requiere == 
 opt Guardar Factura 
-GestorTareas -> GestorFactura : pausarNotificaciones(Factura) 
-GestorFactura -> RepositorioFactura : actualizarFactura(Factura, ESTADO)
-RepositorioFactura -> Database : actualizar(Factura)
-RepositorioFactura --> GestorFactura : resultado(int)
-GestorFactura --> GestorTareas : resultado(int)
+GestorTareas -> GestorFacturas : pausarRecordatorios(Factura) 
+GestorFacturas -> Factura : desactivarNotificaciones()
+GestorFacturas -> RepositorioFactura : actualizarFactura(int, Factura)
+RepositorioFactura -> Database : actualizar(int, Factura)
 end
+else Datos o asignacion incorrecta 
+AutenticadorValidador --> GestorTareas : La asignacion es Incorrecta y no se crea la incidencia
+end alt 
 
 == FASE 3: Guardar el movimiento de la incidencia == 
 
-GestorTareas -> GestorMovimientos : registrarMovimiento(REGISTROTAREA)
-GestorMovimientos -> RepositorioMovimientos : guardarMovimiento(Movimiento)
-RepositorioMovimientos --> GestorMovimientos : resultado(int) 
+GestorTareas -> GestorMovimientos : registrarMovimiento(Tipo_Movimiento, Usuario)
+GestorMovimientos -> RepositorioMovimientos : agregar(Movimiento)
 GestorMovimientos --> GestorTareas 
 
 == Finalizacion del flujo ==
-
-GestorTareas --> Empleado
-
+GestorTareas --> Usuario
 @enduml

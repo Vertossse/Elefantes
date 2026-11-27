@@ -4,48 +4,44 @@ header CU-26
 title Flujo Principal 
 
 actor Empleado
+control GestorClientes
+boundary RepositorioCliente
+control GestorSuscripciones
+control GestorFacturas
+boundary RepositorioFactura
+control GestorInformes
+boundary RepositorioInforme 
 database Database 
-group Buscar por Clientes 
+group Buscar por Clientes
   loop Tantas busquedas de clientes como el usuario quiera 
-  Empleado -> GestorClientes : BuscarClientes(Filtros) 
-  GestorClientes -> RepositorioCliente : BuscarClientes (Filtros)
+  Empleado -> GestorClientes : recuperarClientes(List<Filtros>) 
+  GestorClientes -> RepositorioCliente : buscarFiltrado(List<Filtros>)
   RepositorioCliente -> Database : Consulta 
   Database --> RepositorioCliente : List<Cliente>
-  RepositorioCliente --> GestorCliente : List<Cliente> 
-  GestorCliente --> Empleado : List<Cliente>
+  RepositorioCliente --> GestorClientes : List<Cliente> 
+  GestorClientes --> Empleado : List<Cliente>
   end loop
 end group 
 
-group Buscar por Suscripciones 
-  loop Tantas busquedas como el usuario desee
-  Empleado -> GestorSuscripciones : buscarSuscripciones(Filtros)
-  GestorSuscripciones -> RepositorioSuscripcion : buscarSuscripciones(Filtros)
-  RepositorioSuscripcion -> Database : Consulta 
-  Database --> RepositorioSuscripcion : List<Suscripcion>
-  RepositorioSuscripcion --> GestorSuscripciones : List<Suscripcion>
-  GestorSuscripciones --> Empleado : List<Suscrpcion>
-  end loop
-end group
-
 group Buscar por Facturas 
   loop Tantas busquedas como el usuario desee
-  Empleado -> GestorFacturas : buscarFacturas(Filtros)
-  GestorFacturas -> RepositorioFacturas : buscarFacturas(Filtros)
-  RepositorioFacturas -> Database : Consulta 
+  Empleado -> GestorFacturas : obtenerFacturas(List<Filtro>)
+  GestorFacturas -> RepositorioFactura : buscarFiltrado(List<Filtro>)
+  RepositorioFactura -> Database : Consulta 
   Database --> RepositorioFactura : List<Factura>
   RepositorioFactura --> GestorFacturas : List<Factura>
   GestorFacturas --> Empleado : List<Factura>
   end loop
 end group 
 
-group Buscar por Informes 
+group Buscar por Informe 
   loop Tantas busquedas como el usuario desee
-  Empleado -> GestorInformes : buscarInformes(Filtros)
-  GestorInformes -> RepositorioInformes : buscarInformes(Filtros)
-  RepositorioInformes -> Database : Consulta 
-  Database --> RepositorioInformes : List<Informes>
-  RepositorioInformes --> GestorInformes : List<Informes>
-  GestorInformes --> Empleado : List<Suscrpcion>
+  Empleado -> GestorInformes : buscarInformes(List<Filtro>)
+  GestorInformes -> RepositorioInforme : buscarInformes(List<Filtro>)
+  RepositorioInforme -> Database : Consulta 
+  Database --> RepositorioInforme : List<Informe>
+  RepositorioInforme --> GestorInformes : List<Informe>
+  GestorInformes --> Empleado : List<Informe>
   end loop
 end group 
 @enduml

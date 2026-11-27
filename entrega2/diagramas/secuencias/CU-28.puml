@@ -1,107 +1,77 @@
 @startuml
-title CU-28: Supervisar el sistema
 
-actor SuperAdministrador
-participant GestorAprobaciones
-participant GestorTrabajo
-participant RepositorioTareas
-participant RepositorioNotificacion
-participant GestorMovimientos
-participant RepositorioMovimientos
-participant GestorSistema
-participant AjustesSistema <<singleton>>
+actor SuperAdministrador 
 database Database
+control GestorTareas 
+boundary RepositorioTarea 
+control GestorAprobaciones
+control GestorNotificaciones
+boundary RepositorioNotificacion
+control GestorMovimientos
+boundary RepositorioMovimiento
+== FASE 1: Revisar la auditoría de la acciones claves y la aprobación o rechazo de los cambios == 
+group Obtener las tareas y movimientos correspondientes 
+SuperAdministrador -> GestorTareas : obtenerTareas(List<Filtro>)
+GestorTareas -> RepositorioTarea : buscarFiltrado(List<Filtro>)
+RepositorioTarea -> Database : Consulta 
+Database --> RepositorioTarea : List<SolicitudAprobacion>
+RepositorioTarea --> GestorTareas : List<SolicitudAprobacion>
+GestorTareas --> SuperAdministrador : List<SolicitudAprobacion> 
 
-== FASE 1: Revisar la auditoría de las acciones clave y la aprobación o rechazo de los cambios ==
-SuperAdministrador -> GestorAprobaciones : solicitudesAprobadas(Date)
-note right
-Precondición: sesión iniciada con rol de superadministrador.
-Este gestor le pedirá al de trabajo (tareas y notificaciones)
-la información de los movimientos clave aprobados o rechazados
-utilizando los filtros correspondientes.
-end note
-
-group Obtener las tareas relacionadas a la auditoría
-  GestorAprobaciones -> GestorTrabajo : obtenerTareas(FiltroTareas)
-  GestorTrabajo -> RepositorioTareas : buscar(FiltroTareas)
-  RepositorioTareas -> Database : Consulta
-  Database --> RepositorioTareas : List<Tarea>
-  RepositorioTareas --> GestorTrabajo : List<Tarea>
-  GestorTrabajo --> GestorAprobaciones : List<Tarea>
-end group
+SuperAdministrador -> GestorMovimientos : recuperarMovimientos(List<Filtro>)
+GestorMovimientos -> RepositorioMovimiento : buscarFiltrado(List<Filtro>)
+RepositorioMovimiento -> Database : Consulta para los Movimientos 
+Database --> RepositorioMovimiento : List<RegistrarAuditoria>
+RepositorioMovimiento --> GestorMovimientos : List<RegistrarAuditoria>
+GestorMovimientos --> RepositorioMovimiento : List<RegistrarAuditoria>
+note right 
+El Super Administrador usando una serie de filtro como el tipo de 
+tarea, que para este flujo será una Solicitud de Aprobación, así como
+otros como la fecha o el periodo obtiene las recientes auditorias y 
+respuestas sugeridos para el sistema. 
+end note 
+end group 
 
 group Obtener las notificaciones relacionadas a la auditoría
-  GestorAprobaciones -> GestorTrabajo : obtenerNotificaciones(Filtro<Notificacion>)
-  GestorTrabajo -> RepositorioNotificacion : buscar(Filtro<Notificacion>)
-  RepositorioNotificacion -> Database : Consulta
-  Database --> RepositorioNotificacion : List<Notificacion>
-  RepositorioNotificacion --> GestorTrabajo : List<Notificacion>
-  GestorTrabajo --> GestorAprobaciones : List<Notificacion>
-end group
+GestorAprobaciones -> GestorNotificaciones : recuperarNotificaciones(List<Filtro>)
+GestorNotificaciones -> RepositorioNotificacion : buscarFiltrado(List<Filtro>)
+RepositorioNotificacion -> Database : Consulta 
+Database --> RepositorioNotificacion : List<Notificacion>
+RepositorioNotificacion --> GestorNotificaciones : List<Notificacion>
+GestorNotificaciones --> GestorAprobaciones : List<Notificacion>  
+end group 
 
-note over GestorTrabajo
+note over GestorNotificaciones
 Estos 2 grupos no necesariamente se ejecutarán
-uno detrás del otro: puede haber una ejecución
+uno detrás del otro puede haber una ejecución 
 concurrente de ellos para agilizar la recuperación
-de ambos elementos, pero se pone así para mayor claridad.
-end note
+de ambos elementos, pero se pondrá así para mayor
+claridad
+end note 
 
-GestorAprobaciones --> SuperAdministrador : Tuple2<List<Tarea>, List<Notificacion>>
+== FASE 2: Consultar la tabla de salud == 
+loop Varias veces en función de si se restauran o no copias de seguridad 
+  group Obtener los movimientos del sistema y errores 
+  SuperAdministrador -> GestorMovimientos : recuperarMovimientos(List<Filtro>)
+  note right 
+  En la implementacion, estos filtros serán los que permitan obtener por
+  un lado las acciones normales del sistema y por otro los errores cometidos.
+  end note
+  GestorMovimientos -> RepositorioMovimiento : buscarFiltrado(List<Filtro>)
+  RepositorioMovimiento -> Database : Consulta 
+  Database --> RepositorioMovimiento : List<Movimiento>
+  RepositorioMovimiento --> GestorMovimientos : List<Movimiento>
+  GestorMovimientos --> SuperAdministrador : List<Movimiento>
+  end group 
 
-== FASE 1.1: Decidir sobre los cambios en los ajustes del sistema ==
-alt Los cambios han sido aprobados
-  SuperAdministrador -> GestorSistema : aplicarCambioAjustes(clave)
-  GestorSistema -> AjustesSistema : aplicarCambio(clave)
-  AjustesSistema -> Database : Actualizar AJUSTES_SISTEMA (estado Vigente)
-  Database --> AjustesSistema : OK
-  AjustesSistema --> GestorSistema : OK
-  GestorSistema --> SuperAdministrador : Cambios aplicados
-else Los cambios han sido rechazados (flujo de cancelación)
-  SuperAdministrador -> GestorSistema : rechazarCambioAjustes(clave)
-  GestorSistema -> AjustesSistema : cambio con estado Rechazado
-  GestorSistema --> SuperAdministrador : Cambios cancelados, los ajustes se mantienen
-end
-
-== FASE 2: Consultar la tabla de salud ==
-loop Varias veces en función de si se restauran o no copias de seguridad
-  group Obtener los movimientos del sistema y errores
-    SuperAdministrador -> GestorMovimientos : consultarMovimientos(FiltroMovimientos)
-    note right
-    En la implementación, estos filtros serán los que permitan obtener por
-    un lado las acciones normales del sistema y por otro los errores cometidos.
-    end note
-    GestorMovimientos -> RepositorioMovimientos : buscar(FiltroMovimientos)
-    RepositorioMovimientos -> Database : Consulta
-    Database --> RepositorioMovimientos : List<Movimiento>
-    RepositorioMovimientos --> GestorMovimientos : List<Movimiento>
-    GestorMovimientos --> SuperAdministrador : List<Movimiento>
-  end group
-
-  group Obtener las notificaciones (correos enviados), no solo las de aprobaciones
-    SuperAdministrador -> GestorTrabajo : obtenerNotificaciones(Filtro<Notificacion>)
-    GestorTrabajo -> RepositorioNotificacion : buscar(Filtro<Notificacion>)
-    RepositorioNotificacion -> Database : Consulta
-    Database --> RepositorioNotificacion : List<Notificacion>
-    RepositorioNotificacion --> GestorTrabajo : List<Notificacion>
-    GestorTrabajo --> SuperAdministrador : List<Notificacion>
-  end group
-
-  note over SuperAdministrador, GestorSistema : FASE 3 (flujo alternativo): restaurar una copia de seguridad
-  opt El superadministrador decide que un elemento requiere restaurar una copia
-    SuperAdministrador -> GestorSistema : obtenerCopias(elemento)
-    GestorSistema -> Database : Consulta
-    Database --> GestorSistema : List<CopiaSeguridad>
-    GestorSistema --> SuperAdministrador : List<CopiaSeguridad>
-
-    SuperAdministrador -> GestorSistema : restaurarCopia(CopiaSeguridad)
-    alt Confirma la operación
-      GestorSistema -> Database : Restaurar estado de la copia
-      Database --> GestorSistema : Resultado
-      GestorSistema --> SuperAdministrador : Copia restaurada (o fallo técnico)
-    else Cancela la operación
-      GestorSistema --> SuperAdministrador : Operación cancelada, sin cambios
-    end
-  end
+  group Obtener las notificaciones, pero esta vez no solo acerca de las aprobaciones 
+  GestorAprobaciones -> GestorNotificaciones : recuperarNotificaciones(List<Filtro>)
+  GestorNotificaciones -> RepositorioNotificacion : buscarFiltrado(List<Filtro>)
+  RepositorioNotificacion -> Database : Consulta 
+  Database --> RepositorioNotificacion : List<Notificacion>
+  RepositorioNotificacion --> GestorNotificaciones : List<Notificacion>
+  GestorNotificaciones --> GestorAprobaciones : List<Notificacion> 
+  end group 
 end loop
-
-@enduml
+database Database 
+@enduml 
