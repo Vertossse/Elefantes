@@ -2,7 +2,7 @@
 
 ## Alcance
 
-Este documento explica el modelo Entidad-Relación (ER) físico del sistema de facturación de TurbineH: qué tablas tiene, cómo se relacionan y por qué se diseñó así. El modelo es para PostgreSQL y se obtuvo de los diagramas de clases finales siguiendo la guía de clases y ER acordada en la reunión del grupo. Tiene 42 tablas y cubre los cuatro bloques: usuarios y clientes, suscripciones y facturación, cobros y seguimiento (tareas, notificaciones y movimientos).
+Este documento explica el modelo Entidad-Relación (ER) físico del sistema de facturación de TurbineH: qué tablas tiene, cómo se relacionan y por qué se diseñó así. El modelo es para PostgreSQL y se obtuvo de los diagramas de clases finales siguiendo la guía de clases y ER acordada en la reunión del grupo. Tiene 43 tablas y cubre los cuatro bloques: usuarios y clientes, suscripciones y facturación, cobros y seguimiento (tareas, notificaciones y movimientos).
 
 El diccionario de datos (documento «Diccionario de datos ER») detalla columna por columna el tipo, las restricciones y las notas de cada tabla. Este documento no lo repite.
 
@@ -50,7 +50,7 @@ El diagrama completo está en `entrega2/diagramas/modelo_datos.puml` (fuente Pla
 | Tabla | Clase de origen | Qué guarda |
 |---|---|---|
 | `concepto` | Concepto | Catálogo de conceptos facturables. |
-| `factura` | Factura (Puntual, Recurrente, Rectificada) | Facturas de los tres tipos, con un solo campo de estado y el periodo administrativo. |
+| `factura` | Factura (Puntual, Recurrente, Rectificada) | Facturas de los tres tipos, con un solo campo de estado, el periodo administrativo y la marca de si recibe notificaciones. |
 | `factura_concepto` | (Concepto – Factura) | Conceptos de cada factura, con una copia de su descripción y precio. |
 | `factura_rectificativa` | Factura_Rectificada | Motivo, importe ajustado y factura original a la que corrige. |
 | `periodo_administrativo` | PeriodoAdministrativo | Trimestres contables. |
@@ -86,6 +86,7 @@ El diagrama completo está en `entrega2/diagramas/modelo_datos.puml` (fuente Pla
 | `alta_baja_cliente` | AltaBajaCliente | Altas y bajas de clientes. |
 | `alta_baja_usuario` | AltaBajaEmpleado | Altas y bajas de empleados. |
 | `asignacion_desasignacion_cliente` | AsignacionDesasigancionCliente | Cambios de responsable de un cliente. |
+| `asignacion_desasignacion_contacto` | AsignacionDesasignacionContacto | Alta o baja de un contacto en un cliente. |
 | `generacion_factura` | GeneracionFactura | Facturas generadas. |
 | `rectificacion_factura` | RectificacionFactura | Facturas rectificadas y su fecha. |
 | `generacion_informe` | GeneracionInforme | Informes generados. |
@@ -98,7 +99,7 @@ El diagrama completo está en `entrega2/diagramas/modelo_datos.puml` (fuente Pla
 
 | Tabla | Clase de origen | Qué guarda |
 |---|---|---|
-| `informe` | Informe | Informes generados con su usuario, cliente, factura y periodo. No se guarda el archivo. |
+| `informe` | Informe | Informes generados con su usuario, cliente, factura, periodo, fecha de generación y fecha de emisión. No se guarda el archivo. |
 | `ajustes_sistema` | AjustesSistema (Singleton) | Parámetros globales clave-valor: series, festivos y filtros guardados. |
 
 ## Justificación del modelo
@@ -115,7 +116,7 @@ El diagrama completo está en `entrega2/diagramas/modelo_datos.puml` (fuente Pla
 - `movimiento_cobro (1)` — `conciliacion_cobro (0..1)` — `factura (N)`: un cobro se asocia a una factura y se puede deshacer conservando la traza.
 - `tarea (1)` — subclases (0..1): cada tarea tiene como mucho una fila en la tabla de su tipo, con la misma clave.
 - `incidencia_facturacion (1)` — `comentario_incidencia (0..N)`: composición.
-- `movimiento (1)` — cada una de las 13 tablas de subclase (0..1): cada movimiento tiene una sola fila en la tabla de su tipo.
+- `movimiento (1)` — cada una de las 14 tablas de subclase (0..1): cada movimiento tiene una sola fila en la tabla de su tipo.
 - `notificacion (1)` — `envio_comunicacion (0..N)`: un envío externo guarda qué notificación envió. `usuario (1)` — `notificacion (0..N)`: responsable de cada una.
 - `usuario (1)` — `movimiento (0..N)`: quién realizó cada operación.
 
@@ -125,7 +126,7 @@ Decisiones de diseño:
 - **Estado de la factura.** Un solo campo con los seis estados de las clases (borrador, emitida, pagada, anulada, rectificada, incobrable). «Pagada» solo significa cobro detectado o validado (FAC-02).
 - **Conceptos.** Una factura tiene varios conceptos (FAC-01). Como el catálogo puede cambiar sin alterar facturas antiguas (RNG-14), cada línea guarda una copia de la descripción, el precio y el impuesto.
 - **Notificación.** Una tabla con `tipo`, porque correo, WhatsApp y notificación interna comparten casi todas las columnas. Las columnas específicas son nulas para los demás tipos.
-- **Movimiento.** Base de la auditoría no editable (AUD-01): solo se insertan filas. Las 13 subclases tienen atributos propios, así que cada una tiene su tabla.
+- **Movimiento.** Base de la auditoría no editable (AUD-01): solo se insertan filas. Las 14 subclases tienen atributos propios, así que cada una tiene su tabla.
 - **Excepción comercial.** Es una configuración del sistema que la suscripción referencia. Ya no es una composición de la suscripción.
 - **Cliente.** Clave propia y NIF/CIF único, para que las referencias no se rompan si se reactiva una ficha.
 - **Ajustes y filtros.** Tabla clave-valor para añadir parámetros sin cambiar el esquema. Los filtros guardados van como filas de esta tabla.
@@ -161,7 +162,7 @@ La notación gráfica no valida estas reglas, por eso se describen aquí:
 | PAG-02, PAG-03 | `movimiento_cobro`, `conciliacion_cobro` | Conciliación independiente de la fuente y reversible. |
 | REC-02, NOT-01, NOT-02 | `disputa_deuda`, `notificacion`, `incidencia_facturacion`, `comentario_incidencia`, `tarea` | Disputas, notificaciones e incidencias. |
 | ENV-01, ENV-02, ENV-03 | `notificacion`, `envio_comunicacion` | Envío por correo o WhatsApp, registro de cada envío y rebotes. |
-| AUD-01 | `movimiento` y sus 13 subtablas, `registro_auditoria` | Auditoría no editable. |
+| AUD-01 | `movimiento` y sus 14 subtablas, `registro_auditoria` | Auditoría no editable. |
 | IMP-01 | `importacion_csv` | Traza de cada importación. |
 | INF-01 | `informe`, `generacion_informe` | Informes generados. |
 | CFG-01 | `ajustes_sistema` | Configuración global. |
@@ -170,7 +171,7 @@ La notación gráfica no valida estas reglas, por eso se describen aquí:
 ## Decisiones abiertas
 
 1. `asignacion_cliente` (historial de responsables) no está en las clases finales. Se mantiene en el ER: el historial se podría recuperar también de los movimientos de asignación, pero así se consulta directamente. Conviene añadirlo a las clases como una lista.
-2. `factura_rectificativa.factura_original_id` no está en la clase Factura_Rectificada, pero FAC-06 exige vincular la rectificativa con la original. Se conserva y conviene añadirlo a las clases.
+2. `Archivo`, `CSV` y `PDF` (clases nuevas) no son tablas: los archivos se generan al descargar o enviar y no se guardan. Tampoco se guarda `csvDatos` de la auditoría, que se puede generar a partir de `valor_anterior` y `valor_nuevo`.
 3. Las columnas de copia de `factura_concepto` (precio, descripción, impuesto) no están en las clases; hacen falta para no alterar facturas antiguas (RNG-14).
 4. Los filtros guardados (`FiltroClientes`, `FiltroFacturas`...) están marcados como `<<entity>>` en las clases. En el ER van como filas de `ajustes_sistema` (tipo FILTRO), no como tablas.
-5. Dónde se guarda el resumen de los procesos automáticos (decimocuarta subclase de movimiento).
+5. Dónde se guarda el resumen de los procesos automáticos (decimoquinta subclase de movimiento).

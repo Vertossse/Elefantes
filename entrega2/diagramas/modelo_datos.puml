@@ -162,6 +162,7 @@ package "Facturacion" #FDECEC {
     mes_facturado : CHAR(7)
     presupuesto_origen : VARCHAR(100)
     * es_migrada_historica : BOOLEAN
+    * recibir_notificaciones : BOOLEAN
     cliente_razon_social : VARCHAR(200)
     cliente_nif_cif : VARCHAR(40)
     cliente_domicilio : TEXT
@@ -371,6 +372,13 @@ package "Movimientos y notificaciones" #EFEFEF {
     responsable_nuevo_id : BIGINT <<FK>>
     * es_asignacion : BOOLEAN
   }
+  entity asignacion_desasignacion_contacto {
+    * movimiento_id : BIGINT <<PK,FK>>
+    --
+    * cliente_id : BIGINT <<FK>>
+    * contacto_id : BIGINT <<FK>>
+    * es_asignacion : BOOLEAN
+  }
   entity generacion_factura {
     * movimiento_id : BIGINT <<PK,FK>>
     --
@@ -422,6 +430,7 @@ package "Sistema" #FFFBE0 {
     * tipo : VARCHAR(40)
     parametros : JSONB
     * fecha_generacion : TIMESTAMPTZ
+    fecha_emision : DATE
     * formato : VARCHAR(3)
   }
   entity ajustes_sistema {
@@ -485,6 +494,9 @@ cliente ||--o{ alta_baja_cliente : cliente
 movimiento ||--o| alta_baja_usuario : movimiento
 movimiento ||--o| asignacion_desasignacion_cliente : movimiento
 cliente ||--o{ asignacion_desasignacion_cliente : cliente
+movimiento ||--o| asignacion_desasignacion_contacto : movimiento
+cliente ||--o{ asignacion_desasignacion_contacto : cliente
+contacto ||--o{ asignacion_desasignacion_contacto : contacto
 movimiento ||--o| generacion_factura : movimiento
 factura ||--o{ generacion_factura : factura
 movimiento ||--o| rectificacion_factura : movimiento
@@ -513,7 +525,7 @@ note bottom of factura
 end note
 
 note bottom of movimiento
-  13 tipos, cada uno con su tabla
+  14 tipos, cada uno con su tabla
   Solo INSERT y SELECT para la aplicacion
 end note
 
