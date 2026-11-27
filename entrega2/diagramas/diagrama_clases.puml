@@ -1,0 +1,1454 @@
+@startuml
+package ClasesClientes {
+  class Cliente <<entity>> {
+  -idCliente : int 
+  -nifCif : String
+  -nombreComercial : String 
+  -razonSocial : String 
+  -domicilioFiscal : String 
+  -pais : String 
+  -moneda : String 
+  -estado : EstadoCliente 
+  -fechaAlta : Date
+  -fechaBajaEfectiva : Date
+  -motivo : String 
+  -idTareaEliminar : int 
+  -contacto : List<Contacto>
+  -etiquetas : List<Etiqueta>
+  -suscripcion : Suscripcion
+  -revision_anual : RevisionAnual
+  -responsable : Usuario_Operativo
+
+  +tieneDatosFiscalesCompletos() : boolean 
+  +darDeBaja(String motivo, Date fecha) : void 
+  +reactivar() : void 
+  +anyadirEtiqueta(Etiqueta etiqueta) : void 
+  +quitarEtiqueta(Etiqueta etiqueta) : void 
+  +tieneContactoFacturacion() : boolean 
+  }
+
+  enum EstadoCliente {
+    ACTIVO 
+    PAUSADO 
+    INACTIVO 
+  }
+
+  class Etiqueta {
+    -idEtiqueta : int
+    -nombre : String
+    -colorHex : String  
+  }
+
+  package ClasesContacto {
+    class Contacto <<entity>> {
+    -idContacto : int
+    -nombreCompleto : String 
+    -email : String
+    -telefono : String 
+    -rolContacto : RolesContacto 
+    -canalesConsentidos : Map<Canal, String> 
+    -estado : EstadoContacto
+
+    +activar() : void 
+    +desactivar() : void 
+    +anonimizar() : void 
+    +admiteCanal(Canal canal) : boolean 
+    }
+
+    enum RolesContacto {
+    FACTURACION
+    CONTRATACION
+    IMPAGOS 
+    }
+
+    enum EstadoContacto {
+    ACTIVO
+    INACTIVO
+    ANONIMIZADORGPD
+    }
+
+    enum Canal {
+      EMAIL
+      WHATSAPP
+    }
+
+    Contacto "*" --> "1" RolesContacto
+    Contacto "*" --> "1" EstadoContacto
+    Contacto "*" --> "1...*" Canal 
+  }
+  Cliente "*" --> "1" EstadoCliente 
+  Cliente "*" --o "1...*" Contacto
+  Cliente "*" --o "1...*" Etiqueta  
+}
+
+package ClasesSuscripcion {
+  class Suscripcion <<entity>> {
+  -idSuscripcion: int
+  -fechaInicio: Date
+  -planContratado: String
+  -tarifaAcordada: double
+  -estado : EstadoSub
+  -motivoPausa: String
+  -fechaInicioPausa: Date
+  -fechaFinPausaPrevista: Date
+  -excepcionSinProrrateo: boolean
+  -plazoPagosDias: int
+  -rutaDocumentoContrato: String
+  -excepcionComercial: ExcepcionComercial 
+
+  +calcularProrrateoPrimerMes(): double
+  +pausar(String motivo, Date fecha, Date fin): void
+  +reactivar(): void
+  +cancelar(): void
+  +debeFacturarse(int mes): boolean
+  +aplicarNuevaTarifa(double tarifa, Date fechaEfecto): void
+  }
+
+  enum EstadoSub {
+  ACTIVA
+  PAUSADA 
+  PROGRAMADAFUTURA
+  CANCELADA
+  }
+
+  package ClasesExcepcion {
+    class ExcepcionComercial <<entity>> {
+      -idExcepcion : int
+      -tipoExcepcion : ExcepcionesPosibles
+      -descuento : double
+      -vigenteDesde : Date 
+      -vigenteHasta : Date
+
+      +estaVigente(Date fecha) : boolean 
+      +aplicar(Factura factura) : void 
+    }
+
+    enum ExcepcionesPosibles {
+      PRIMERMESGRATIS
+      DESCUENTOTEMPORAL
+      PRECIOPACTADO
+      SINPRORRATEO 
+    }
+
+    ExcepcionComercial "*" --> "1" ExcepcionesPosibles
+  }
+
+  Suscripcion "*" --> "0...1" ExcepcionComercial
+  Suscripcion "*" --> "1" EstadoSub
+  Suscripcion "1" --* "1" Cliente 
+}
+
+package ClasesFacturas {
+  abstract class Factura <<entity>> {
+  -idFactura : int
+  -numeroSerieCompleto : String
+  -serie : String 
+  -numeroSecuencia : int 
+  -estado : EstadoFactura
+  -fechaEmision : Date 
+  -fechaVencimiento : Date 
+  -moneda : String 
+  -subtotal : double 
+  -impuestos : double 
+  -total : double 
+  -esMigradaHistorica : boolean 
+  -recibirNotificaciones : boolean 
+  -creador : Usuario
+  -conceptos : List<Concepto> 
+  -periodo : PeriodoAdministrativo
+  -clienteAsociado : Cliente 
+
+  +recalcularTotales() : double 
+  +esEditable() : boolean
+  +emitir(Date fechaEmision) : void 
+  +desactivarNotificaciones() : void 
+  +reactivarNotificaciones() : void 
+  +marcarPagada() : void
+  +marcarRectificada() : void 
+  +marcarInconbrable() : void 
+  }
+
+  enum EstadoFactura {
+  BORRADOR 
+  EMITIDA 
+  PAGADA  
+  ANULADA 
+  RECTIFICADA 
+  INCOBRABLE 
+  }
+  
+  class Factura_Puntual <<entity>> {
+  -presupuestoOrigen : String 
+  }
+
+  class Factura_Recurrente <<entity>> {
+  -mesFacturado : Date 
+  }
+  Factura_Recurrente "*" ..> "1" Suscripcion
+  
+  class Factura_Rectificada <<entity>> {
+  -ifdFacturaOriginal : int 
+  -motivoRectificacion : String 
+  -importeAjustado : double 
+  }
+  Factura "*" --> "1" EstadoFactura 
+  Factura_Puntual --|> Factura
+  Factura_Recurrente --|> Factura 
+  Factura_Rectificada --|> Factura
+
+  class Concepto <<entity>> {
+    -idConcepto : int 
+    -nombre : String 
+    -descripcionPorDefecto : String 
+    -precioBase : double 
+    -impuestoPorDefecto : double 
+    -activo : boolean 
+  }
+  Concepto "1...*" --o "*" Factura 
+  Factura "1...*" --> "1" Cliente 
+  Factura "1...*" --* "1"Cliente 
+}
+
+package ClasesEmpleados {
+  abstract class Usuario <<entity>> {
+  -idUsuario : int
+  -emailCorporativo : String
+  -passwordHash : String
+  -estado : EstadoCuenta 
+  -fechaAlta : Date
+  -ultimoAcceso : Date
+  -tieneRestriccionesClientes : boolean 
+
+  +autenticarPassword(String password) : boolean 
+  +cambiarPassword(String password) : void 
+  +desactivar() : void 
+  +reactivar() : void
+  +puedeAccederACliente(Cliente cliente) : boolean  
+  } 
+
+  enum EstadoCuenta {
+  ACTIVADO
+  DESACTIVADO
+  }
+  
+  package ClasesUsuarioPorRoles {
+    class Usuario_Operativo <<entity>> {
+      -asignaciones : List<Cliente>
+
+      +puedeDarAltaClientes() : boolean 
+      +asignadoA(Cliente) : boolean 
+    }
+    
+    class Administrador <<entity>> {
+      -umbralAprobacion : double 
+    }
+    class SuperAdministrador
+    Usuario_Operativo --|> Usuario
+    Administrador --|> Usuario
+    SuperAdministrador --|> Usuario
+    Usuario_Operativo --> Cliente
+  }
+  Usuario "*" --> "1" EstadoCuenta 
+}
+
+    PeriodoAdministrativo "*" --> "1" EstadoPeriodo
+    PeriodoAdministrativo ..> Usuario
+    Factura "*" --> "1" PeriodoAdministrativo
+
+    RevisionAnual "*" --> "1" EstadoRevision
+    RevisionAnual "*" --* "1" Cliente 
+
+package ClasesMovimiento {
+  enum TipoMovimiento {
+    ENVIOCOMUNICACION 
+    REGISTROAUDITORIA 
+    ImportacionCSV
+    CIERREPERIODOADMINISTRATIVO 
+    ALTABAJACLIENTE
+    ALTABAJAUSUARIO 
+    ASIGNACIONDESASIGNACIONCLIENTE
+    GENERACIONFACTURA 
+    RECTIFICACIONFACTURA 
+    GENERACIONINFORME
+    APLICACIONEXCEPCIONCOMERCIAL 
+    REGISTROCOBRO 
+    REGISTROTAREA 
+  }
+
+  abstract class Movimiento <<entity>>{
+    -idMovimiento :  int
+    -fecha : Date 
+    -encargado : Usuario 
+    -detalle : String 
+  }
+
+  package SubclasesMovimiento {
+    package ClasesEnvioComunicacion {
+      class EnvioComunicacion <<entity>> {
+      -Notificacion : Notificacion 
+      -factura : Factura 
+      -contaco : Contacto 
+      -tipoMensaje : TipoMensaje 
+      -estado : EstadoMensaje 
+      -esReintentado : boolean 
+      -numeroIntento : int 
+
+      +marcarEnviado() : void 
+      +marcarRebotado() : void 
+      +reenviar() : void 
+      }
+
+      enum TipoMensaje {
+        FACTURA
+        RECORDATORIO 
+        IMPAGO 
+      }
+
+      enum EstadoMensaje {
+        ENCOLA
+        ENVIADO 
+        FALLIDOREBOTADO 
+        REINTENTADO 
+      }
+
+      EnvioComunicacion "*" --> "1" TipoMensaje
+      EnvioComunicacion "*" --> "1" EstadoMensaje
+      EnvioComunicacion --|> Movimiento
+    }
+
+    package ClasesRegistroAuditoria {
+       class RegistroAuditoria <<entity>> {
+        -csvDatos : CSV 
+        -tablaAfectada : Factura 
+        -idRegistroAfectado : int
+        -tipoAccion : TipoAccion 
+        -valorAnterior : JSON 
+        -valorNuevo : JSON 
+      }
+
+      enum TipoAccion {
+        ALTA
+        MODIFICACION 
+        EMISION 
+        CONCILIACION 
+        RESIGNACION 
+        CIERREPERIODO 
+      }
+
+      RegistroAuditoria "*" --> "1" TipoAccion
+      RegistroAuditoria --|> Movimiento
+    }
+
+    package ClasesImportacionCSV {
+      class ImportacionCSV <<entity>> {
+        -nombreArchivo : CSV 
+        -filasTotales : int 
+        -filasCorrectas : int 
+        -estado : EstadoCSV 
+      }
+
+      enum EstadoCSV {
+        VALIDO
+        INVALIDO 
+      }
+
+      ImportacionCSV "*" --> "1" EstadoCSV 
+      ImportacionCSV --|> Movimiento
+    }
+
+    package ClasesOtrosMovimientos {
+      class CierrePeriodoAdministrativo <<entity>> {
+        -periodoCerrado : PeriodoAdministrativo
+      }
+
+      class AltaBajaCliente <<entity>> {
+        -esBaja : boolean 
+        -cliente : Cliente 
+      }
+
+      class AltaBajaEmpleado <<entity>> {
+        -esBaja : boolean 
+        -empleadoAfectado : Usuario 
+      }
+
+      class AsignacionDesasigancionCliente <<entity>> {
+        -esAsignacion : boolean 
+        -clienteAfectado : Cliente 
+        -responsableOriginal : Usuario 
+        -responsableNuevo : Usuario 
+      }
+
+      class AsignacionDesasignacionContacto <<entity>> {
+        -esAsignacion : boolean 
+        -clienteAfectado : Cliente 
+        -contactoAfectado : Contacto 
+      }
+
+      class GeneracionFactura <<entity>> {
+        -facturaGenerada : Factura 
+      }
+
+      class RectificacionFactura <<entity>> {
+        -facturaRectificada : Factura 
+        -fechaRectificacion : Date 
+      }
+
+      class GeneracionInforme <<entity>> {
+        -informeGenerado : Informe 
+      }
+
+      class AplicarExcepcionComercial <<entity>> {
+        -facturaAfectada : Factura 
+        -clienteResponsable : Cliente 
+        -excepcionApliacada : ExcepcionComercial 
+      }
+
+      class RegistroCobro <<entity>> {
+        -conciliacion : Conciliacion 
+      }
+
+      class RegistroTarea <<entity>> {
+        -tareaRegistrada : Tarea 
+      }
+    }
+    note right of ClasesOtrosMovimientos
+      Todas las clases de este paquete heredan
+      de la clase Movimiento y no se pondrán por
+      el momento todas esas flechas para simplicar
+      el diagrama, pero se entiende que toda clase
+      no enumeradas dentro del paquete 
+      SubclasesMovimiento hereda de Movimiento
+    end note 
+  }
+}
+
+package ClasesNotificacion {
+  abstract class Notificacion <<entity>> {
+    -idNotificacion : int 
+    -asunto : String 
+    -texto : String 
+    -fecha : Date 
+    -usuarioResponsable : Usuario 
+    -detalle : String 
+  }
+
+  package SubclasesDeNotificacion {
+    class WhatsApp <<entity>> {
+      -telefonoOrigen : String 
+      -telefonoDestino : String 
+    }
+
+    class CorreoElectronico <<entity>> {
+      -correoOrigen : String 
+      -correoDestion : String 
+    }
+
+    class NotificacionInterna <<entity>> {
+      -usuarioReceptor : Usuario
+      -leida : boolean 
+  
+      +marcarLeida() : void  
+    }
+
+    WhatsApp --|> Notificacion
+    CorreoElectronico --|> Notificacion
+    NotificacionInterna --|> Notificacion
+    EnvioComunicacion --> Notificacion
+  }
+}
+
+package ClasesPaqueteConciliacion {
+  package ClasesConciliacion {
+    class Conciliacion <<entity>> {
+    -idConciliacion : int 
+    -tipo : TipoConciliacion 
+    -discrepanciaImporte : double 
+    -fecha : Date 
+    -motivoRevertido : String 
+    -estadoConciliacion : EstadoConciliacion 
+    -movimiento : MovimientoCobro
+    -facturaAsociada : Factura 
+
+    +tieneDiscrepancia() : boolean 
+    +revertir(String motivo) : void 
+    }
+
+    enum TipoConciliacion {
+      AUTOMATICA
+      MANUAL 
+    }
+
+    enum EstadoConciliacion {
+      CONCILIADO 
+      REVERTIDO 
+    }
+
+    Conciliacion "*" --> "1" TipoConciliacion
+    Conciliacion "*" --> "1" EstadoConciliacion 
+    RegistroCobro "0...1" --> "1" Conciliacion
+  }
+
+  package ClasesMovimientoCobro {
+    class MovimientoCobro <<entity>> {
+    -idMovimiento : int 
+    -fuentePasarela : PasarelasPago
+    -referenciaTransaccion : String 
+    -fechaOperacion : Date 
+    -importeRecibido : double 
+    -moneda : String 
+    -conceptoBanco : String 
+
+    +esDuplicado() : boolean 
+    +coincideCon(Factura factura) : boolean 
+    }
+
+    enum PasarelasPago {
+      STRIPE 
+      REVOLUT 
+      BANCO 
+    }
+    
+    Conciliacion "1" --o "0...1" MovimientoCobro 
+    MovimientoCobro "*" --> "1" PasarelasPago
+  }
+}
+
+    EnvioComunicacion "*" --> "1" Contacto 
+    AltaBajaCliente "*" --> "1" Cliente 
+    AsignacionDesasigancionCliente "*" --> "1" Cliente 
+    AplicarExcepcionComercial "*" --> "1" Cliente 
+
+    EnvioComunicacion "*" --> "0...1" Factura 
+    RegistroAuditoria "*" --> "0...1" Factura 
+    GeneracionFactura "1" --> "1" Factura 
+    RectificacionFactura "1" --> "0...1" Factura 
+    AplicarExcepcionComercial "*" --> "1" Factura 
+    AplicarExcepcionComercial "*" --> "1" ExcepcionComercial
+    Conciliacion "0...1" --> "1" Factura 
+
+    Movimiento "*" --> "1" Usuario  
+    AltaBajaEmpleado "*" --> "1" Usuario
+    AsignacionDesasigancionCliente "*" --> "1" Usuario 
+    Notificacion "*" --> "1" Usuario
+    NotificacionInterna "*" --> "1" Usuario 
+
+    CierrePeriodoAdministrativo "*" --> "1" PeriodoAdministrativo
+
+    GeneracionInforme "1" --> "1" Informe 
+
+    RegistroTarea "1" --> "1" Tarea 
+
+package ClasesTarea {
+  package ClaseAbstractaTarea {
+    enum TipoTarea {
+      DELEGACIONTEMPORAL 
+      REVISIONANUAL 
+      DISPUTADEUDA 
+      INCIDENCIAFACTURACION 
+      SOLICITUDAPROBACION
+    }
+
+    abstract class Tarea <<entity>> {
+    -idTarea : int 
+    -estado : EstadoTarea 
+    -fechaCreacion : Date 
+    -fechaAplazada : Date 
+    -fechaFin : Date 
+    -ejectucor : Ejecutores 
+
+    +resolver(Usuario usuario) : void 
+    +aplazar(Date fecha) : void 
+    }
+
+    enum EstadoTarea {
+      PENDIENTE
+      ATENDIDA
+    }
+
+    enum Ejecutores {
+      USUARIO
+      SISTEMA 
+    }
+
+    Tarea "*" --> "1" EstadoTarea
+    Tarea "*" --> "1" Ejecutores 
+  }
+
+  package SubclasesTarea {
+    package SubclasesConEjecutorSistema {
+      package ClasesDelegacionTemporal {
+        class DelegacionTemporal <<entity>> {
+          -idDelegacion : int 
+          -estadoDelegacion : EstadoDelegacion 
+          -cliente : Cliente 
+          -usuarioOrigen : Usuario 
+          -usuarioDestino : Usuario 
+
+          +resolver(Usuario usuario) : void
+          +aplazar(Date fecha) : void  
+          -activar() : void 
+          -revocar() : void 
+          -caducar() : void 
+          +estaVigente(Date fecha) : boolean 
+        }
+
+        enum EstadoDelegacion {
+          ACTIVA 
+          CADUCADA 
+          REVOCADA 
+        }
+
+        DelegacionTemporal "*" --> "1" EstadoDelegacion
+        DelegacionTemporal --|> Tarea 
+      }
+
+      package ClasesRevisionAnual {
+        class RevisionAnual <<entity>> {
+        -idRevision : int
+        -facturacionVerificada : double 
+        -estadoRevision : EstadoRevision 
+        -fechaRevision : Date 
+        -tarifaRango : TarifaRango 
+        -aprobador : Usuario
+
+        +resolver() : void 
+        +aplazar(Date fecha) : void 
+        -calcularTarifaPropuesta(TarifaRango tarifa) : TarifaRango
+        +aprobar(Usuario usuario, TarifaRango tarifa) : void 
+        +rechazar(Usuario usuario) : void 
+        +mantener() : void 
+        }
+
+        enum EstadoRevision {
+        PENDIENTE
+        APROBADA
+        RECHAZADA 
+        MANTENIDA 
+        }
+
+        class TarifaRango <<entity>> {
+        -idTarifa : int 
+        -rangoFacturacionMin : double 
+        -rangoFacturacionMax : double 
+        -importeMensualBase : double 
+        -fechaEfecto : Date 
+        -validoHasta : Date 
+
+        +aplicaA(double facturacion) : boolean 
+        +estaVigente(Date fecha) : boolean 
+        }
+        TarifaRango "1" --o "1...*" RevisionAnual
+        RevisionAnual --|> Tarea 
+      }
+    }
+
+    package SubclasesConEjecutorUsuario {
+      class DisputaDeuda <<entity>> {
+        -idDisputa : int 
+        -motivoReclamacion : String 
+        -fechaRevisionPrevista : Date 
+        -recordatoriosCongelados : boolean 
+        -facturaAsociada : Factura 
+        -clienteAsociado : Cliente 
+        -usuarioResponsable : Usuario 
+
+        +resolver() : void 
+        +aplazar(Date fecha) : void 
+        -cerrar(Usuario usuario) : void 
+        -congelarRecordatorios() : void 
+        +recordatoriosCongelados() : boolean 
+      }
+
+      DisputaDeuda --|> Tarea 
+
+      package ClasesIncidenciaFacturacion {
+        class IncidenciaFacturacion <<entity>> {
+          -idIncidencia: int 
+          -tipoIncidencia: TiposIncidencia 
+          -prioridad: PrioridadIncidencia 
+          -estadoIncidencia : EstadoIncidencia
+          -pausarRecordatorios: boolean 
+          -cliente: Cliente 
+          -factura: Factura
+          -usuario: Usuario
+          -comentarios: List<ComentarioIncidencia>
+
+          +resolver(Usuario usuario) : void 
+          +cambiarEstado(EstadoIncidencia estado) : void 
+          +asignar(Usuario usuario) : void 
+        }
+
+        enum TiposIncidencia {
+          ENVIOREBOTADO 
+          NIFINCORRECTO 
+          PAGONOLOCALIZADO 
+          AVISOBAJAAPI 
+        }
+
+        enum PrioridadIncidencia {
+          ALTA 
+          MEDIA 
+          BAJA 
+        }
+
+        enum EstadoIncidencia {
+          PENDIENTE 
+          RESUELTA 
+        }
+
+        IncidenciaFacturacion "*" --> "1" TiposIncidencia
+        IncidenciaFacturacion "*" --> "1" PrioridadIncidencia
+        IncidenciaFacturacion "*" --> "1" EstadoIncidencia
+        IncidenciaFacturacion "1" --* "*" ComentarioIncidencia
+
+        class ComentarioIncidencia <<entity>> {
+          -idComentario : int 
+          -nivelVisibilidad : nivelVisibilidadComentarios
+          -mensaje : String 
+          -fechaHora : Date 
+        }
+
+        enum nivelVisibilidadComentarios {
+          INTERNOGESTOR 
+          GLOBALADMIN 
+        }
+
+        ComentarioIncidencia "*" --> "1" nivelVisibilidadComentarios
+        IncidenciaFacturacion --|> Tarea 
+      }
+
+      package ClasesSolicitudAprobacion {
+        class SolicitudAprobacion <<entity>> {
+          -idSolicitud : int 
+          -tipoOperacion : OperacionesPosibles 
+          -valorSolicitado : double 
+          -motivo : String 
+          -resolucion : Resolucion 
+          -fechaResolucion : Date 
+          -clienteAsociado : Cliente 
+          -facturaAsociada : Factura 
+          -aprobador : Usuario 
+
+          +resolver(Usuario usuario) : void 
+          +aplazar(Date fecha) : void 
+          +requiereAprobacion(double facturacion) : boolean 
+          +aprobar(Usuario) : void 
+          +rechazar(Usuario, String) : void 
+        }
+
+        enum OperacionesPosibles {
+          DESCUENTOTEMPORAL
+          PRIMERMESGRATIS
+          PRECIOPACTADO
+          RECTIFICATIVAALTA
+          CONDONACIONDEUDA
+          FACTURAPUNTUALALTA
+        }
+
+        enum Resolucion {
+          APROBADA 
+          RECHAZADA 
+        }
+
+        SolicitudAprobacion "*" --> "1" OperacionesPosibles
+        SolicitudAprobacion "*" --> "1" Resolucion 
+        SolicitudAprobacion --|> Tarea 
+      }
+    }
+  }
+}
+
+package ClasesInforme {
+  class Informe <<entity>> {
+    -idInforme : int 
+    -tipo : String 
+    -parametros : JSON 
+    -fechaGeneracion : Date 
+    -formato : FormatosValidos 
+    -usuarioCreador : Usuario 
+    -clienteAsociado : Cliente 
+    -facturaAsociada : Factura 
+    -periodo : PeriodoAdministrativo
+    -fechaEmision : Date
+
+    +programar(Date fecha) : void  
+  }
+
+  enum FormatosValidos {
+    PDF 
+    CSV 
+  }
+
+  Informe "*" --> "1" FormatosValidos 
+  abstract class Archivo 
+  class CSV 
+  class PDF 
+  CSV --|> Archivo
+  PDF --|> Archivo 
+}
+
+package ClasesAjustesDelSistema {
+  class Reloj <<singleton>> {
+  +iniciar() : void 
+  +resolverTareas() : void 
+  +resolverExportaciones() : void 
+  +enviarRecurrentes() : void
+  +revisarClientesYContactosLimite() : void 
+  +revisarEmpleadosLimite() : void  
+  +tic() : void 
+  }
+
+  Reloj ..> AjustesSistema
+
+  package ClasesPeriodoAdministrativo {
+    class PeriodoAdministrativo <<entity>> {
+    -idPeriodo: int
+    -anyo: int
+    -trimestre: int
+    -estado: EstadoPeriodo
+    -fechaCierre: Date
+    -horaCierre: Date
+    -autorizacionSuperior: boolean
+
+    +cerrar(Usuario usuario): void
+    +reabrir(Usuario usuario, String motivo): void
+    +contieneFecha(Date fecha): boolean
+    +permiteEmitir(Date fecha): boolean
+    }
+
+    enum EstadoPeriodo {
+    ABIERTO
+    CERRADO
+    REABIERTOEXCEPCIONAL
+    }
+
+    Informe "*" --> "1" PeriodoAdministrativo
+  }
+
+  AjustesSistema ..> PeriodoAdministrativo
+
+  package ClasesComponentesAjustes {
+    class AjusteSistemaPuntual <<entity>> {
+    -clave : String
+    -valor : String
+    -tipo : String
+    -fechaEfecto : Date 
+    -estado : States
+    }
+
+    enum States {
+    VIGENTE
+    PENDIENTE
+    RECHAZADA
+    }
+
+    AjusteSistemaPuntual "*" --> "1" States
+
+    class Festivo {
+    -dia : int 
+    -mes : int 
+    }
+
+    class AutenticadorValidador <<static>> {
+    +verificarCredenciales(String email, String password) : boolean 
+    +comprobarPermisos(Usuario usuario, Cliente cliente) : boolean
+    +validarCorreo(String correo) : boolean
+    +validarPassword(String password) : boolean 
+    +validarNIF(String NIF) : boolean 
+    +validarCSV(CSV csv) : boolean 
+    +validarImporteEnUmbral(Administrador, double) : boolean 
+    +validarDatosFiscales(String datosFiscales) : boolean 
+    +validarConsultaAPI(String consultaAPI) : boolean 
+    }
+
+    package ClasesFiltros {
+      interface Filtro<T> {
+        aplicarFiltro(T) : boolean  
+      }
+
+      package FiltroDeClientes {
+        class FiltroClientes <<entity>> {
+          -nombreCliente : String 
+          -idCliente : int 
+          -estado : EstadoCliente 
+          -etiquetas : List<Etiqueta> 
+          -responsable : Usuario 
+
+          +aplicarFiltro(Cliente) : boolean  
+        }
+
+        FiltroClientes ..|> Filtro 
+      }
+
+      package FiltroDeFacturas {
+        class FiltroFacturas <<entity>> {
+          -clienteAsociado : Cliente 
+          -importeMaximo : double 
+          -importeMinimo : double 
+          -estado : EstadoFactura
+          -fechaFactura : Date 
+
+          +aplicarFiltro(Factura) : boolean  
+        }
+
+        FiltroFacturas ..|> Filtro 
+      }
+
+      package FiltroDeMovimientos {
+        class FiltroMovimientos <<entity>> {
+          -responsableAsociado : Usuario 
+          -clienteAsociado : Cliente 
+          -facturaAsociada : Factura 
+          -fechaMovimiento : Date
+          -tipo : TipoMovimiento 
+
+          +aplicarFiltro(Movimiento) : boolean  
+        }
+
+        FiltroMovimientos ..|> Filtro 
+      }
+
+      package FiltroDeTareas {
+        class FiltroTareas <<entity>> {
+          -responsableAsociado : Usuario 
+          -fechaTarea : Date 
+          -clienteAsociado : Cliente 
+          -facturaAsociada : Factura 
+          -tipo : TipoTarea 
+
+          +aplicarFiltro(Tarea) : boolean  
+        }
+
+        FiltroTareas ..|> Filtro 
+      }
+
+      package FiltroDeInformes {
+        class FiltroInformes <<entity>> {
+          -clienteAsociado : Cliente 
+          -facturaAsociada : Factura 
+          -usuarioAsociado : Usuario 
+          -formato : FormatosValidos
+          -parametros : JSON 
+
+          +aplicarFiltro(Informe) : boolean  
+        }
+
+        FiltroInformes ..|> Filtro 
+      }
+
+      package FiltroDeEmpleados {
+        class FiltroEmpleados <<entity>> {
+          -rol : Rol 
+          -correoAdministrativo : String
+          -idEmpleados : int
+          -estadoCuenta : EstadoCuenta
+
+          +aplicarFiltro(Usuario) : boolean  
+        }
+
+        FiltroEmpleados ..|> Filtro 
+      }
+
+      package FiltroDeNotificaciones {
+        class FiltroNotificacion <<entity>> {
+        -idNotificacion : int 
+        -asunto : String 
+        -texto : String 
+        -detalle : String 
+
+        +aplicarFiltro(Notificacion) : boolean 
+        }
+
+        FiltroNotificacion ..|> Filtro 
+      }
+    }
+  }
+
+  class AjustesSistema <<singleton>> {
+  -ajustes : List<AjusteSistemaPuntual>
+  -festivos : List<Festivo>
+  -filtros : List<Filtro>
+  -serieFacturacion : int 
+  -IVA : double 
+  -plazoVencimientoPagoEnDias : int 
+  -diasHastaRecordatorio : int 
+  -diasAvisosEnImpagos : int 
+  -limiteClientesPorUsuario : int 
+  -umbralAprobacion : double 
+  -umbralDeFacturaPuntualAlta : double 
+  -margenPatronImporte : double 
+  -antiguedadMaximaReaperturasPeriodos : int 
+
+  +obtener(String clave) : AjusteSistemaPuntual 
+  +proponerCambio(String clave, String valor, Usuario usuario) : void 
+  +esLaborable(Date fecha) : boolean 
+  +siguienteNumeroSerie() : int
+  }
+
+  AjusteSistemaPuntual "*" --* "1" AjustesSistema 
+  AjustesSistema "1" --o "*" Festivo
+  AjustesSistema "1" --o "*" Filtro
+}
+
+  AutenticadorValidador ..> CSV 
+
+    DelegacionTemporal "*" --> "1" Cliente 
+    DisputaDeuda "*" --> "1" Cliente 
+    IncidenciaFacturacion "*" --> "1" Cliente 
+    SolicitudAprobacion "*" --> "1" Cliente 
+    Informe "*" --> "1" Cliente 
+    FiltroMovimientos "*" --> "0...1" Cliente
+    FiltroTareas "*" --> "0...1" Cliente
+    FiltroInformes "*" --> "0...1" Cliente
+    AutenticadorValidador ..> Cliente 
+
+    FiltroClientes "*" --> "0...1" EstadoCliente
+    FiltroClientes "*" --> "*" Etiqueta
+
+    DisputaDeuda "*" --> "1" Factura 
+    IncidenciaFacturacion "*" --> "1" Factura 
+    SolicitudAprobacion "*" --> "1" Factura 
+    Informe "*" --> "1" Factura 
+    FiltroMovimientos "*" --> "0...1" Factura
+    FiltroTareas "*" --> "0...1" Factura
+    FiltroInformes "*" --> "0...1" Factura
+
+    FiltroFacturas "*" --> "0...1" EstadoFactura
+
+    DelegacionTemporal "*" --> "1" Usuario 
+    RevisionAnual "*" --> "1" Usuario
+    DisputaDeuda "*" --> "1" Usuario 
+    IncidenciaFacturacion "*" --> "1" Usuario 
+    SolicitudAprobacion "*" --> "1" Usuario 
+    Informe "*" --> "1" Usuario 
+    FiltroMovimientos "*" --> "0...1" Usuario
+    FiltroTareas "*" --> "0...1" Usuario
+    FiltroInformes "*" --> "0...1" Usuario
+    AutenticadorValidador ..> Usuario
+
+  FiltroMovimientos "*" --> "0...1" TipoMovimiento
+  FiltroTareas "*" --> "0...1" TipoTarea 
+
+  GestorAcceso ..> GestorEmpleados
+
+  GestorTareas ..> GestorCobros 
+  GestorTareas ..> GestorFacturas 
+  GestorTareas ..> GestorMovimientos 
+  GestorTareas ..> GestorNotificaciones
+  GestorTareas ..> GestorClientes 
+  GestorTareas ..> GestorEmpleados 
+  GestorTareas ..> GestorSistema 
+  
+  GestorNotificaciones ..> GestorAprobaciones 
+  
+  GestorAprobaciones ..> GestorNotificaciones 
+  GestorAprobaciones ..> GestorTareas 
+  GestorAprobaciones ..> GestorSistema 
+  
+  GestorSistema ..> GestorAprobaciones 
+  GestorSistema ..> GestorMovimientos 
+  GestorSistema ..> GestorInformes 
+  GestorSistema ..> GestorFacturas 
+  GestorSistema ..> GestorNotificaciones
+  
+  GestorEmpleados ..> GestorClientes
+  GestorEmpleados ..> GestorAcceso
+  GestorEmpleados ..> GestorSistema   
+  
+  GestorClientes ..> GestorEmpleados 
+  GestorClientes ..> GestorFacturas 
+  GestorClientes ..> GestorNotificaciones
+  GestorClientes ..> GestorSuscripciones 
+  GestorClientes ..> GestorMovimientos 
+  GestorClientes ..> GestorSistema 
+  GestorClientes ..> GestorInformes  
+
+  GestorSuscripciones ..> GestorClientes 
+  GestorSuscripciones ..> GestorSistema 
+
+  GestorFacturas ..> GestorSistema  
+  GestorFacturas ..> GestorSuscripciones
+  GestorFacturas ..> GestorClientes
+  GestorFacturas ..> GestorNotificaciones
+  GestorFacturas ..> GestorMovimientos 
+  GestorFacturas ..> GestorAprobaciones 
+  GestorFacturas ..> GestorInformes 
+
+  GestorCobros ..> GestorTareas
+  GestorCobros ..> GestorFacturas 
+  GestorCobros ..> GestorMovimientos 
+  GestorCobros ..> GestorClientes 
+
+  GestorInformes ..> GestorSistema 
+  GestorInformes ..> GestorMovimientos
+
+  Reloj ..> GestorTareas 
+  Reloj ..> GestorCobros 
+  Reloj ..> GestorFacturas 
+  Reloj ..> GestorClientes 
+
+  GestorFacturas ..> AutenticadorValidador
+  GestorAcceso ..> AutenticadorValidador
+  GestorAprobaciones ..> AutenticadorValidador
+  GestorClientes ..> AutenticadorValidador 
+
+package ClasesGestorAcceso {
+  class GestorAcceso <<control>> {
+    +iniciarSesion(String correo, String password) : void 
+    +cerrarSesion() : void 
+    +recuperarContrasenya(String correo) : String 
+    +cerrarPorInactividad() : void 
+    +crearUsuario(String correo, String password, Rol rol) : void 
+    +desactivarUsuario(int idUsuario, Usuario usuario) : void 
+  }
+}
+
+package ClasesGestorClientes {
+  class GestorClientes <<control>> {
+    +registrarContacto(Cliente cliente) : Contacto 
+    +registrarCliente(Usuario usuario, List<Contacto> listaContactos) : void 
+    +reactivarCliente(int idCliente) : void 
+    +recuperarClientePuntual(int idCliente) : Cliente 
+    +recuperarClientes(List<FiltroClientes> listaFiltros) : Cliente 
+    +actualizarCliente(int idCliente, Cliente cliente) : void 
+    -asignar(Cliente cliente, Usuario usuario) : void 
+    -desasignar(Cliente cliente, Usuario usuario) : void 
+    +anyadirContacto(int idCliente, Contacto contacto) : void 
+    +desactivarContacto(int idCliente, Contacto contacto) : void 
+    +etiquetar(int idCliente, Etiqueta etiqueta) : void 
+    +darDeBaja(int idCliente) : void 
+    +anonimizarCliente(int idCliente) : void
+    +anonimizarContacto(int idCliente, Contacto) : void 
+    +borrarClientesYContactoLimite() : void 
+    +importarCSV(CSV csv) : void  
+  }
+
+  class RepositorioCliente <<boundary>> {
+    +agregar(Cliente cliente) : void 
+    +buscarPuntual(int idCliente) : Cliente 
+    +buscarFiltrado(List<FiltroClientes> listaFiltros) : List<Cliente>
+    +eliminarPuntual(int idCliente) : void 
+    +eliminarFiltrado(List<Filtro> filtros) : void 
+    +actualizar(int idCliente, Cliente cliente) : void 
+  }
+
+    GestorClientes ..> Cliente
+    GestorClientes ..> Contacto 
+    RepositorioCliente ..> Cliente 
+    RepositorioCliente ..> Contacto
+
+  GestorClientes ..> RepositorioCliente
+}
+
+package ClasesGestorSuscripciones {
+  class GestorSuscripciones <<control>> {
+  +crearSuscripcion(Cliente cliente) : void 
+  +eliminarSuscripcion(int idSuscripcion) : void 
+  +actualizarSuscripcion(Cliente cliente, int idSuscripcion, Suscripcion nuevaSuscripcion) : void 
+  +pausar(int idSuscripcion) : void 
+  +reactivar(int idSuscripcion) : void 
+  +calcularProrrateo(int idSuscripcion) : double 
+  }
+
+    GestorSuscripciones ..> Suscripcion
+
+  GestorSuscripciones ..> Cliente 
+}
+
+package ClasesGestorAprobaciones {
+  class GestorAprobaciones <<control>> {
+  +solicitar(Cliente cliente, double facturacion, String texto) : SolicitudAprobacion
+  +solicitarAuditoria(RegistroAuditoria) : SolicitudAprobacion 
+  +solicitarCambioAjustes(AjustesSistema ajustes, AjusteSistemaPuntual ajustePuntual, String accion) : SolicitudAprobacion 
+  +aprobar(SolicitudAprobacion solicitud) : void 
+  +rechazar(SolicitudAprobacion solicitud) : void 
+  +listarPendiente(Usuario usuario) : List<SolicitudAprobacion>
+  +aplicarExcepcion(SolicitudAprobacion solicitud) : void 
+  }
+
+  GestorAprobaciones ..> Cliente 
+}
+
+package ClasesGestorTareas {
+  class GestorTareas <<control>> {
+    +crearTarea(TipoTarea tipo) : void 
+    +aplazarTarea(int idTarea, Date fecha) : void 
+    +actualizarTarea(int idTarea, Tarea tarea) : void 
+    +eliminarTarea(int idTarea) : void 
+    +obtenerTareaPuntual(int idTarea) : Tarea 
+    +obtenerTareas(List<FiltroTareas> listaFiltros) : List<Tarea>
+    +resolverTarea(Tarea tarea) : void 
+
+    +abrirIncidencia(Cliente cliente, Factura factura) : void 
+    +comentarIncidencia(IncidenciaFacturacion incidencia) : void 
+    +resolverIncidencia(IncidenciaFacturacion incidencia) : void 
+  }
+
+  class RepositorioTareas <<boundary>> {
+    +agregar(Tarea tarea) : void 
+    +eliminarPuntual(int idTarea) : void
+    +eliminarFiltrado(List<Filtro> filtros) : void  
+    +actualizar(int idTarea, Tarea tarea) : void 
+    +buscarPuntual(int idTarea) : Tarea 
+    +buscarFiltrado(List<FiltroTareas> listaFiltros) : List<Tarea> 
+  }
+
+    GestorTareas ..> RepositorioTareas
+    GestorTareas ..> IncidenciaFacturacion
+    GestorTareas ..> Tarea 
+    RepositorioTareas ..> Tarea
+
+  GestorTareas ..> Cliente 
+}
+
+package ClasesGestorFacturas {
+  class GestorFacturas <<control>> {
+  +crearBorrador(Cliente cliente) : void 
+  +eliminarBorrador(int idFactura) : void 
+  +rectificarFactura(int idFactura, Cliente cliente, String motivo) : void 
+  +obtenerFacturaPuntual(int idFactura) : Factura 
+  +obtenerFacturas(List<FiltroFacturas> listaFiltros) : List<Factura>
+  +anyadirConcepto(Factura factura, Concepto concepto, double facturacion) : void 
+  +eliminarConcepto(Factura factura, Concepto concepto) : void 
+
+  +listarImpagos(List<FiltroFacturas> listaFiltros) : List<Factura>
+  +enviarRecordatorio(Cliente cliente, Factura factura) : void
+  +pausarRecordatorios(Factura) : void 
+  +reactivarRecordatorios(Factura) : void  
+  +validarEmision(Factura factura) : void 
+  +emitir(Factura factura) : void 
+  +generarPDF(Factura factura) : PDF 
+  +generarRecurrentes(Cliente cliente) : void 
+  }
+
+  class RepositorioFacturas <<boundary>> {
+    +agregar(Factura factura) : void 
+    +buscarPuntual(int idFactura) : Factura 
+    +buscarPorFiltrado(List<FiltroFacturas> listaFiltros) : List<Factura>
+    +actualizar(int idFactura, Factura idFactura) : void
+    +eliminarPuntual(int idFactura) : void
+    +eliminarFiltrado(List<Filtro> filtros) : void   
+  }
+
+    GestorFacturas ..> Factura 
+    GestorFacturas ..> Concepto
+    GestorFacturas ..> Cliente 
+    GestorFacturas ..> RepositorioFacturas
+    RepositorioFacturas ..> Factura
+}
+
+package ClasesAdicionales {
+
+  interface Repositorio<T> {
+  +agregar(T entidad) : void 
+  +buscarPuntual(int idEntidad) : T 
+  +buscarPorFiltrado(List<Filtro<T>> listaFiltros) : List<T>  
+  }
+
+  interface RepositorioSobreescritura<T> {
+  +actualizar(int idEntidad, T entidad) : void 
+  +eliminarPuntual(int idEntidad) : void
+  +eliminarFiltrado(List<Filtro>) : void
+  }
+  RepositorioSobreescritura ..|> Repositorio 
+  RepositorioCliente ..|> RepositorioSobreescritura 
+  RepositorioFacturas ..|> RepositorioSobreescritura
+  RepositorioTareas ..|> RepositorioSobreescritura
+
+    RepositorioCliente ..> Filtro 
+    GestorClientes ..> Filtro
+
+    GestorTareas ..> Filtro 
+    RepositorioTareas ..> Filtro  
+
+    GestorClientes ..> CSV 
+    GestorFacturas ..> PDF 
+
+    GestorAcceso ..> Usuario
+    GestorAcceso ..> Rol 
+}
+
+package ClasesGestorCobros {
+  class GestorCobros <<control>> {
+  +conciliarAutomaticamente() : void 
+  +conciliarManual(Cliente cliente, Factura factura) : void 
+  +revertirConciliacion(Conciliacion conciliacion) : void
+  +abrirDisputa(String motivo, Usuario usuario, Factura factura, Cliente cliente) : DisputaDeuda 
+  +cerrarDisputa(DisputaDeuda disputa) : void 
+  +obtenerDatosFinancieros() : void 
+  }
+
+  GestorCobros ..> Conciliacion 
+}
+
+package ClasesGestorInformes {
+  class GestorInformes <<control>> {
+  +construirDashboard(SuperAdministrador superAdmin) : void
+  +generarInforme(Usuario usuario, Cliente cliente, Factura factura) : void
+  +generarInformeCambioPeriodo(String tipo, FormatosValidos format, JSON parametros, PeriodoAdministrativo periodo)
+  +revisarExportaciones() : void
+  +exportacionMasiva(Map<Informe, FormatosValidos>) : void   
+  +exportarInforme(Informe informe, FormatosValidos format) : void 
+  +programar(Informe informe, Date fecha) : void 
+  +buscarInformePuntual(int idInforme) : Informe 
+  +buscarInformes(List<FiltroInformes> listaFiltros) : List<Informe>
+  }
+
+  class RepositorioInforme <<boundary>> {
+  +agregar(Informe informe) : void 
+  +buscarPuntual(int idInforme) : Informe 
+  +buscarPorFiltrado(List<FiltroInformes> listaFiltros) : List<Informe>
+  }
+
+  class ExportadorArchivos <<singleton>> {
+  +exportar(Informe informe, FormatosValidos format) : void 
+  }
+
+  GestorInformes ..> RepositorioInforme
+  GestorInformes ..> ExportadorArchivos
+  GestorInformes ..> Informe 
+  ExportadorArchivos ..> Informe 
+}
+
+package ClasesGestorSistema {
+  class GestorSistema <<control>> {
+  +obtenerAjustes() : AjustesSistema 
+  +guardarAjustesActualizados(AjustesSistema) : void 
+  +proponerCambioAjustes(String clave, String valor, Usuario usuario) : void 
+  +aplicarCambioAjuste(AjusteSistemaPuntual ajustePuntual, String accion) : void 
+  +atenderConsultaAPI(String consulta) : void  
+
+  +obtenerFestivos() : List<Festivo>
+  +obtenerFiltros(List<Tipo_Filtro> listaTipos) : List<Filtro<T>>
+  +obtenerExcepciones() : List<ExcepcionComercial>
+  +pedirAutenticadorValidador() : AutenticadorValidador 
+  +gestionarFiltros(List<Filtro<T>> listaFiltros) : void 
+  +gestionarFestivos(List<Festivo> listaFestivos) : void 
+  +gestionarExcepciones(List<ExcepcionComercial> listaExcepciones) : void 
+  +cerrarPeriodo(PeriodoAdministrativo periodo) : void
+  +reabrirPeriodo(PeriodoAdministrativo periodo, String motivo) : void 
+  +restaurarCopia(PeriodoAdministrativo periodo) : void 
+  }
+
+  enum Tipo_Filtro {
+    CLIENTE 
+    EMPLEADO 
+    NOTIFICACION 
+    MOVIMIENTO 
+    INFORME 
+    FACTURA 
+    TAREA 
+  }
+
+  GestorSistema ..> Tipo_Filtro
+    GestorSistema ..> PeriodoAdministrativo
+
+    AjustesSistema "1" --> "*" ExcepcionComercial
+
+    GestorSistema ..> AjustesSistema
+    GestorSistema ..> Filtro 
+    GestorSistema ..> ExcepcionComercial
+    GestorSistema ..> Festivo
+    GestorInformes ..> Filtro  
+}
+
+package ClasesGestorMovimientos {
+  class GestorMovimientos <<control>> {
+  +registrarMovimiento(TipoMovimiento tipo, Usuario usuario) : void 
+  +recuperarMovimientoPuntual(int idMovimiento) : Movimiento 
+  +recuperarMovimientos(List<FiltroMovimientos> listaFiltros) : List<Movimiento>
+  +registrarAuditoria(Factura factura, int registro, TipoAccion tipoAccion, JSON valorAnterior, JSON valorNuevo)
+  }
+
+  class RepositorioMovimiento <<boundary>> {
+  +agregar(Movimiento movimiento) : void 
+  +buscarPuntual(int idMovimiento) : Movimiento 
+  +buscarPorFiltrado(List<FiltroMovimientos> listaMovimiento) : List<Movimiento>
+  }
+  GestorMovimientos ..> RepositorioMovimiento
+  RepositorioMovimiento ..|> Repositorio
+
+  Movimiento ..> TipoMovimiento
+  GestorMovimientos ..> Movimiento
+  GestorMovimientos ..> Filtro 
+}
+
+package ClasesGestorEmpleados {
+  class GestorEmpleados <<control>> {
+  +registrarEmpleado(Rol rol, String correo) : void 
+  +obtenerEmpleadoPuntual(int idUsuario) : Usuario 
+  +obtenerEmpleados(List<FiltroEmpleados> listaFiltros) : List<Usuario>
+  +actualizarEmpleado(int idUsuario, Usuario usuario) : void 
+  +activar(int idUsuario) : void 
+  +desactivar(int idUsuario) : void 
+  +eliminarEmpleado(int idUsuario) : void 
+  +revisarEmpleadosLimite() : void 
+  +obtenerAsignados(Usuario_Operativo usuarioOP) : List<Cliente> 
+  }
+
+  class RepositorioEmpleado <<boundary>> {
+    +agregar(Usuario usuario) : void 
+    +buscarPuntual(int idUsuario) : Usuario
+    +buscarFiltrado(List<FiltroEmpleados> listaFiltros) : List<Usuario>
+    +actualizar(int idUsuario, Usuario usuario) : void 
+    +eliminarPuntual(int idUsuario) : void
+    +eliminarFiltrado(List<Filtro> filtros) : void   
+  }
+
+  GestorEmpleados ..> RepositorioEmpleado
+
+  package ClasesYRelacionesUsuarios {
+  enum Rol {
+    USUARIO_OPERATIVO 
+    ADMINISTRADOR
+    SUPERADMINISTRADOR 
+  }
+
+  GestorEmpleados ..> Usuario
+  GestorEmpleados ..> Filtro 
+  GestorEmpleados ..> Rol 
+  GestorInformes ..> SuperAdministrador 
+  GestorMovimientos ..> Usuario 
+  GestorCobros ..> Usuario
+  }
+}
+
+package ClasesGestorNotificaciones {
+  class GestorNotificaciones <<control>> {
+  +registrarNotificacion(Tipo_Notificacion tipo, String asunto, String texto, String detalle, Archivo archivo) : void 
+  +recuperarNotificacionPuntual(int idNotificacion) : Notificacion
+  +recuperarNotificaciones(List<FiltroNotificacion> listaFiltros) : List<Notificacion>
+  +obtenerNotificacionesRecibidas() : void 
+  +comunicarResultado(int idSolicitud) : void 
+  +enviarNotificacion(Notificacion notificacion) : void 
+  +gestionarRebote(Notificacion notificacion) : void 
+  +reintentarEnvio(Notificacion notificacion) : void 
+  }
+
+  class RepositorioNotificacion <<boundary>> {
+  +agregar(Notificacion notificacion) : void 
+  +buscarPuntual(int idNotificacion) : Notificacion
+  +buscarFiltrado(List<FiltroNotificacion> listaNotificacion) : List<Notificacion>
+  }
+
+  GestorNotificaciones ..> RepositorioNotificacion
+
+  package ClasesYRelacionesNotificacion {
+  enum Tipo_Notificacion
+  Notificacion ..> Tipo_Notificacion
+
+  GestorNotificaciones ..> Notificacion
+  GestorNotificaciones ..> Filtro 
+  }
+}
+
+  
+  RepositorioInforme ..|> Repositorio
+  RepositorioEmpleado ..|> RepositorioSobreescritura
+  RepositorioNotificacion ..|> Repositorio
+
+  GestorCobros ..> Cliente 
+  GestorCobros ..> Factura 
+  GestorCobros ..> DisputaDeuda
+
+@enduml
