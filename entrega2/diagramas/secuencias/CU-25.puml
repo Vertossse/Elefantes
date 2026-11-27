@@ -21,7 +21,7 @@ control GestorNotificaciones
     group Mostrar y Crear 
 == FASE 1: Pedirle los informes al gestor y filtrar == 
     loop Tantas veces como filtrados quiera hacer el Usuario
-    Usuario -> GestorInformes : buscarInforme(List<Filtro>)
+    Usuario -> GestorInformes : buscarInformes(List<Filtro>)
     GestorInformes -> RepositorioInforme : buscarFiltrado(List<Filtro>)
     RepositorioInforme -> Database : Obtiene los Informe usando los filtros
     Database --> RepositorioInforme : List<Informe> 

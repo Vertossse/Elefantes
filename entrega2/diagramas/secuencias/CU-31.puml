@@ -62,7 +62,7 @@ opt Si el gestor de clientes o del sistema necesita las facturas
 end opt 
 end opt 
 
-else Si afecta al de empleados
+else Si afecta al de Empleados
 GestorSistema -> GestorEmpleados : Operacion
 GestorEmpleados -> RepositorioEmpleado : Operacion 
 RepositorioEmpleado -> Database : Operacion

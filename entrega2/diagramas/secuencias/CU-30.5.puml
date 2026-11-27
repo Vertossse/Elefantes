@@ -9,7 +9,6 @@ control GestorSistema
 database Database
 control GestorAprobaciones
 control GestorNotificaciones
-control GestorAccesos 
 boundary Reloj 
 == ALTERNATIVO 1: Eliminacion de los datos del cliente == 
 alt Eliminacion por cumplimiento de la fecha 
@@ -49,8 +48,8 @@ end group
 
 == ALTERNATIVO 2: Atrasar la eliminacion por reactivacion == 
 group El gestor de acceso pide que se inicialice el cliente 
-GestorAccesos -> GestorClientes : registrarCliente(datos) 
-GestorClientes -> RepositorioCliente : registrarCliente(datos)
+Administrador -> GestorClientes : registrarCliente(Usuario, List<Contacto>) 
+GestorClientes -> RepositorioCliente : registrarCliente(Cliente)
 RepositorioCliente -> Database : Consulta existencial
 alt Si el cliente existe 
 RepositorioCliente --> GestorClientes : Cliente 
